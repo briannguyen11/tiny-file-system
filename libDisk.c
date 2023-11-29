@@ -8,23 +8,16 @@
  * Return: Valid file descriptor or -1 indicating error
  */
 int openDisk(char *filename, int nBytes) {
-    int fd = -1;
-    if (filename == NULL || nBytes < BLOCK_SIZE) {
-        return fd;
-    } else if (nBytes == 0) {
-        // existing disk file is opened, do not overwrite content
+    int fd;
+    if (nBytes == 0) {
+        // if filename does not exit, return -1 otherwise file exists
         fd = open(filename, O_RDWR);
+    } else if (filename == NULL || nBytes < BLOCK_SIZE) {
+        fd = -1;
     } else {
         // create a new disk file
         fd = open(filename, O_RDWR | O_CREAT | O_TRUNC,
                   0660);  // enable RW for owner, groups, others
-
-        // writing null bytes to designate first space for emulated disk
-        for (int i = 0; i < nBytes; i++) {
-            if (write(fd, "\0", 1) == -1) {
-                fd = -1;
-            }
-        }
     }
     return fd;
 }
@@ -99,9 +92,4 @@ int writeBlock(int disk, int bNum, void *block) {
         }
     }
     return res;
-}
-
-int main(int args, char *argv[]) {
-    printf("Hello Project 4");
-    return 0;
 }
