@@ -9,8 +9,11 @@
 #include "libDisk.h"
 #include "tinyFS_errno.h"
 
-#define SUPER_BLOCK 1
-#define MAGIC_NUM 0x44
+typedef struct SuperBlock {
+   char type;
+   char mNum;
+   char data[BLOCKSIZE - 2];
+} SuperBlock;
 
 int tfs_mkfs (char *filename, int nBytes);
 

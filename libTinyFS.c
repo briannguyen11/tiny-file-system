@@ -1,47 +1,46 @@
 #include "libTinyFS.h"
 
 int tfs_mkfs(char *filename, int nBytes){
-    int res = 0;
-    int finalRes = 0;
-    int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
+    int fd = 0;
+    int tmp = 0;
+    int numBlocks = nBytes / BLOCKSIZE;
 
-    int fd = openDisk(filename, nBytes);
+    if ((fd = openDisk(filename, nBytes)) < 0){
+        printf("Error: Failed to open disk in function: tfs_mkfs\n");
+        return TFS_MKFS_FAIL;
+    } else {
+        // init empty buf (0x00)
+        char *emptyBuf = calloc(BLOCKSIZE, sizeof(char));
 
-    // When fd is -1, we are opening a new disk
-    if (fd != -1){
-        // Init empty buf 0x00
-        char *emptyBuf = malloc(BLOCKSIZE * sizeof(char));
-        memset(emptyBuf, 0, BLOCKSIZE);
-
-        // Populate disk w/ empty blocks 
+        // populate disk w/ empty buf
         for (int i = 0; i < numBlocks; i++){
-            res = writeBlock(fd, i, emptyBuf);
-            if (res < 0){
-                printf("WRITING_BLOCK_ERROR\n");
-                finalRes = -1;
+            tmp = writeBlock(fd, i, emptyBuf);
+            if (tmp < 0){
+                printf("Error: Failed to write in function: tfs_mkfs\n");
+                return TFS_MKFS_FAIL;
             }
         }
-        
-        // Create super block
-        char *superBlockBuf = malloc(BLOCKSIZE * sizeof(char));
-        superBlockBuf[0] = SUPER_BLOCK; 
-        superBlockBuf[1] = MAGIC_NUM;
-
-        char freeBlockArr[numBlocks];
-        memset(freeBlockArr, 'F', numBlocks);
-        memcpy(superBlockBuf + 2, freeBlockArr, numBlocks);
-
-        res = writeBlock(fd, 0, superBlockBuf);
-        if (res < 0){
-            printf("WRITING_BLOCK_ERROR\n");
-            finalRes = -1;
-        }
-
         free(emptyBuf);
-    } else {
-        printf("OPEN_DISK_ERROR\n");
-        finalRes = -1;
+        
+        // init super block
+        SuperBlock superBlock;
+        superBlock.type = 1;
+        superBlock.mNum = 0x44;
+
+        char freeBlockArr[numBlocks];         // creating free block bit vector
+        memset(freeBlockArr, 'F', numBlocks); // init bit vector to all free
+        freeBlockArr[0] = 'T';                // set first block to taken by super block
+
+        memset(superBlock.data, 0, sizeof(superBlock.data));
+        memcpy(superBlock.data, freeBlockArr, numBlocks);
+
+        tmp = writeBlock(fd, 0, &superBlock);
+        if (tmp < 0){
+            printf("Error: Failed to write in function: tfs_mkfs\n");
+            return TFS_MKFS_FAIL;
+        }
     }
 
-    return finalRes;
+    return TFS_MKFS_SUCCESS;
 }
+
