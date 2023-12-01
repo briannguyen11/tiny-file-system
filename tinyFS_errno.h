@@ -4,6 +4,4 @@
 #define TFS_MKFS_FAIL -1
 #define TFS_MKFS_SUCCESS 0
 
-
-
 #endif /* TINYFSERRNO_H*/
