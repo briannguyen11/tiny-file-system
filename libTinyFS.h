@@ -15,6 +15,16 @@ typedef struct SuperBlock {
     char data[BLOCKSIZE - 2];
 } SuperBlock;
 
+typedef struct FreeBlock {
+    char type;
+    char mNum;
+    char data[BLOCKSIZE - 2];
+} FreeBlock;
+
+/* Primary Functions */
 int tfs_mkfs(char *filename, int nBytes);
+
+/* Helper Functions */
+int setupFileSystem(int fd, int numBlocks);
 
 #endif /* LIBTINYFS_H*/

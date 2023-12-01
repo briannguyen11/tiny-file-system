@@ -1,7 +1,10 @@
 #ifndef TINYFSERRNO_H
 #define TINYFSERRNO_H
 
-#define TFS_MKFS_FAIL -1
-#define TFS_MKFS_SUCCESS 0
+#define SUCCESS 0
+
+#define OPEN_DISK_ERR -100
+
+#define WRITE_BLOCK_ERR -101
 
 #endif /* TINYFSERRNO_H*/
