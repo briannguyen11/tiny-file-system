@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define BLOCK_SIZE 256
+#include "tinyFS.h"
 
 int openDisk(char *filename, int nBytes);
 int closeDisk(int disk);

@@ -25,4 +25,4 @@ clean:
 	rm disk0.dsk disk1.dsk disk2.dsk disk3.dsk
 
 tfstest:
-	$(CC) $(CFLAGS) libDisk.c libTinyFS.c myTfsTest.c -o tfsTest
+	$(CC) $(CFLAGS) libDisk.c libTinyFS.c myTfsTest.c -o boom

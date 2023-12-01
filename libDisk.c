@@ -12,7 +12,7 @@ int openDisk(char *filename, int nBytes) {
     if (nBytes == 0) {
         // if filename does not exit, return -1 otherwise file exists
         fd = open(filename, O_RDWR);
-    } else if (filename == NULL || nBytes < BLOCK_SIZE) {
+    } else if (filename == NULL || nBytes < BLOCKSIZE) {
         fd = -1;
     } else {
         // create a new disk file
@@ -52,12 +52,12 @@ int readBlock(int disk, int bNum, void *block) {
         res = -1;
     }
     // Check if lseek is successful (lseek moves fd over offset amount)
-    else if (lseek(disk, bNum * BLOCK_SIZE, SEEK_SET) == -1) {
+    else if (lseek(disk, bNum * BLOCKSIZE, SEEK_SET) == -1) {
         res = -1;
     }
     // Read the block
     else {
-        if (read(disk, block, BLOCK_SIZE) == -1) {
+        if (read(disk, block, BLOCKSIZE) == -1) {
             res = -1;
         }
     }
@@ -82,12 +82,12 @@ int writeBlock(int disk, int bNum, void *block) {
         res = -1;
     }
     // Check if lseek is successful (lseek moves fd over offset amount)
-    else if (lseek(disk, bNum * BLOCK_SIZE, SEEK_SET) == -1) {
+    else if (lseek(disk, bNum * BLOCKSIZE, SEEK_SET) == -1) {
         res = -1;
     }
     // Write to the block
     else {
-        if (write(disk, block, BLOCK_SIZE) == -1) {
+        if (write(disk, block, BLOCKSIZE) == -1) {
             res = -1;
         }
     }
