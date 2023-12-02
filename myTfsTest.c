@@ -25,5 +25,7 @@ int main() {
         printf("%d\n", res);
     }
 
+    res = tfs_openFile("file1");
+    printf("%d\n", res);
     return 0;
 }

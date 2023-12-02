@@ -1,8 +1,8 @@
 #include "libTinyFS.h"
 
 // Global Variables
-char *mDisk = NULL;   // mounted disk
-DRT *drtHead = NULL;  // head of dynamic resource table
+char *mDisk = NULL;         // mounted disk
+FileEntry *headDRT = NULL;  // head of DRT containing file entries
 
 /**
  * Opens a new disk and initializes it with a super block
@@ -22,8 +22,7 @@ int tfs_mkfs(char *filename, int nBytes) {
 
         // populate disk w/ empty buf
         for (int i = 0; i < numBlocks; i++) {
-            tmp = writeBlock(fd, i, emptyBuf);
-            if (tmp < 0) {
+            if ((tmp = writeBlock(fd, i, emptyBuf)) < 0) {
                 printf("Error: Failed to write in function: tfs_mkfs\n");
                 return WRITE_BLOCK_ERR;
             }
@@ -31,8 +30,7 @@ int tfs_mkfs(char *filename, int nBytes) {
         free(emptyBuf);
 
         // setup file system with super block and free blocks
-        tmp = setupFileSystem(fd, numBlocks);
-        if (tmp < 0) {
+        if ((tmp = setupFileSystem(fd, numBlocks)) < 0) {
             printf("Error: Failed to write in function: tfs_mkfs\n");
             return WRITE_BLOCK_ERR;
         }
@@ -42,8 +40,7 @@ int tfs_mkfs(char *filename, int nBytes) {
 }
 
 /**
- * Keeps track of the current disk being accessed
- * for file operations
+ * Set current disk being accessed to new disk
  */
 int tfs_mount(char *diskname) {
     int fd = 0;
@@ -63,13 +60,12 @@ int tfs_mount(char *diskname) {
     }
 
     // read super block metadata
-    tmp = readBlock(fd, 0, buf);
-    if (tmp < 0) {
+    if ((tmp = readBlock(fd, 0, buf)) < 0) {
         printf("Error: Failed to read in function: tfs_mount\n");
         return READ_BLOCK_ERR;
     }
 
-    // validate magic numver
+    // validate magic number
     if (buf[1] != 0x44) {
         printf("Error: Non-valid magic number in function: tfs_mount\n");
         return INVALID_MNUM_ERR;
@@ -83,6 +79,9 @@ int tfs_mount(char *diskname) {
     return TFS_MOUNT_SUCCESS;
 }
 
+/**
+ * Remove current disk being accessed
+ */
 int tfs_unmount() {
     free(mDisk);
     if (mDisk == NULL) {
@@ -91,6 +90,67 @@ int tfs_unmount() {
     mDisk = NULL;
     return TFS_UNMOUNT_SUCCESS;
 }
+
+/**
+ * Opens or creates a new file. Updates DRT in
+ * the process of creating a file
+ */
+fileDescriptor tfs_openFile(char *name) {
+    int tmp = 0;
+    fileDescriptor fd;
+    FileEntry *newFE = malloc(sizeof(FileEntry));  // debug remember to free
+    FileEntry *tmpFE = headDRT;
+
+    /* Check if disk is mounted and open mounted disk */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk to read
+        if ((tmp = openDisk(mDisk, 0)) < 0) {
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Check if file exist in DRT LL -> if true, return fd */
+    // -- note: if file is found in DRT, it is assumed that it has been opened
+    while (tmpFE != NULL) {
+        if (strcmp(tmpFE->filename, name) == 0) {
+            return tmpFE->fd;
+        }
+        tmpFE = tmpFE->next;
+    }
+
+    /* Creating new file */
+    // open a new file for r/w operations
+    if ((fd = open(name, O_RDWR | O_CREAT)) < 0) {
+        printf("Error: Could not create file in functoin: openFile.\n");
+        return OPEN_FILE_ERR;
+    }
+
+    // create a new file entry
+    if (strlen(name) > sizeof(newFE->filename) - 1) {
+        printf("Error: Filename must be within 8 alphanumeric characters.\n");
+        return FILENAME_ERR;
+    } else {
+        newFE->fd = fd;
+        strcpy(newFE->filename, name);
+        newFE->next = NULL;
+    }
+
+    // add new file entry to DRT
+    if (headDRT == NULL) {
+        headDRT = newFE;
+    } else {
+        FileEntry *curr = headDRT;
+        while (curr->next != NULL) {
+            curr = curr->next;
+        }
+        curr->next = newFE;
+    }
+
+    return fd;
+}
+
 /*********************** Helper Functions ***********************/
 
 /**
