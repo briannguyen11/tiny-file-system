@@ -1,6 +1,7 @@
 #ifndef LIBTINYFS_H
 #define LIBTINYFS_H
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,14 +30,14 @@ typedef struct FreeBlock {
 
 /* Primary Functions */
 int tfs_mkfs(char *filename, int nBytes);
-
 int tfs_mount(char *diskname);
-
 int tfs_unmount();
-
 fileDescriptor tfs_openFile(char *name);
+int tfs_closeFile(fileDescriptor fd);
+int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
 
 /* Helper Functions */
 int setupFileSystem(int fd, int numBlocks);
+int getIndexToWrite(int diskFd, int size);
 
 #endif /* LIBTINYFS_H*/
