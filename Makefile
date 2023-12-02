@@ -37,6 +37,6 @@ dump:
 	hexdump -C -v tinyFSDisk
 
 clean:
-	rm tinyFSDisk
+	rm tinyFSDisk tinyFSDiskRand 
 
 

@@ -9,6 +9,12 @@
 #include "tinyFS.h"
 #include "tinyFS_errno.h"
 
+typedef struct DRT {
+    fileDescriptor fd;
+    char filename[9];
+    struct DRT *next;  // must use LL to by dynamic
+} DRT;
+
 typedef struct SuperBlock {
     char type;
     char mNum;
@@ -23,6 +29,10 @@ typedef struct FreeBlock {
 
 /* Primary Functions */
 int tfs_mkfs(char *filename, int nBytes);
+
+int tfs_mount(char *diskname);
+
+int tfs_unmount();
 
 /* Helper Functions */
 int setupFileSystem(int fd, int numBlocks);

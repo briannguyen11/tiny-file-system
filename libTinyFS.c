@@ -1,7 +1,8 @@
 #include "libTinyFS.h"
 
 // Global Variables
-char *mDisk = NULL;  // mounted disk
+char *mDisk = NULL;   // mounted disk
+DRT *drtHead = NULL;  // head of dynamic resource table
 
 /**
  * Opens a new disk and initializes it with a super block
@@ -37,7 +38,7 @@ int tfs_mkfs(char *filename, int nBytes) {
         }
     }
 
-    return SUCCESS;
+    return TFS_MKFS_SUCCESS;
 }
 
 /**
@@ -45,20 +46,50 @@ int tfs_mkfs(char *filename, int nBytes) {
  * for file operations
  */
 int tfs_mount(char *diskname) {
+    int fd = 0;
+    int tmp = 0;
+    char buf[BLOCKSIZE];
+
     // unmount current disk if applicable
     if (mDisk != NULL) {
-        printf("%s is currently mounted. Unmouting now.");
+        printf("%s is currently mounted. Unmouting now.\n", mDisk);  // debug
         tfs_unmount();
     }
+
+    // mount to new disk by opening
+    if ((fd = openDisk(diskname, 0)) < 0) {
+        printf("Error: Failed to open disk in function: tfs_mount\n");
+        return OPEN_DISK_ERR;
+    }
+
+    // read super block metadata
+    tmp = readBlock(fd, 0, buf);
+    if (tmp < 0) {
+        printf("Error: Failed to read in function: tfs_mount\n");
+        return READ_BLOCK_ERR;
+    }
+
+    // validate magic numver
+    if (buf[1] != 0x44) {
+        printf("Error: Non-valid magic number in function: tfs_mount\n");
+        return INVALID_MNUM_ERR;
+    }
+
+    // set mounted disk to new disk
+    mDisk = calloc(sizeof(char), strlen(diskname) + 1);
+    strcpy(mDisk, diskname);
+
+    printf("Now mounted to %s\n", mDisk);  // debug
+    return TFS_MOUNT_SUCCESS;
 }
 
-int tfs_unmount(void) {
+int tfs_unmount() {
     free(mDisk);
     if (mDisk == NULL) {
         printf("Nothing to unmount.");
     }
     mDisk = NULL;
-    return 0;
+    return TFS_UNMOUNT_SUCCESS;
 }
 /*********************** Helper Functions ***********************/
 
@@ -102,5 +133,5 @@ int setupFileSystem(int fd, int numBlocks) {
         }
     }
 
-    return SUCCESS;
+    return 0;
 }
