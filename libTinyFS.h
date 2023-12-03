@@ -22,6 +22,14 @@ typedef struct SuperBlock {
     char data[BLOCKSIZE - 2];
 } SuperBlock;
 
+typedef struct InodeBlock {
+    char filename[9];
+    char size;
+    char startBlock;
+    char numCtxBlock;
+    struct InodeBlock *next;  // LL to be dynamic
+} InodeBlock;
+
 typedef struct FreeBlock {
     char type;
     char mNum;
@@ -37,7 +45,7 @@ int tfs_closeFile(fileDescriptor fd);
 int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
 
 /* Helper Functions */
-int setupFileSystem(int fd, int numBlocks);
-int getIndexToWrite(int diskFd, int size);
+int setupFS(int diskFd);
+int getIndexToWrite(int diskFd, int writeBlockSize, char freeBlockArr[]);
 
 #endif /* LIBTINYFS_H*/
