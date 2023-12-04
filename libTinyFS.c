@@ -2,9 +2,8 @@
 
 // Global Variables
 int numBlocks;
-char *mDisk = NULL;            // mounted disk
-FileEntry *headOFT = NULL;     // head of OFT containing file entries
-InodeBlock *headInode = NULL;  // head of inode LL
+char *mDisk = NULL;         // mounted disk
+FileEntry *headOFT = NULL;  // head of OFT containing file entries
 
 /**
  * Opens a new disk and initializes it with a super block
@@ -90,6 +89,9 @@ int tfs_mount(char *diskname) {
     mDisk = calloc(sizeof(char), strlen(diskname) + 1);
     strcpy(mDisk, diskname);
 
+    /* Set numBlock according to new mounted disk size*/
+    // TODO
+
     // log success
     printf("] Mounted to disk '%s' with status:: %d\n", mDisk,
            TFS_MOUNT_SUCCESS);
@@ -156,6 +158,7 @@ fileDescriptor tfs_openFile(char *name) {
     // create file entry
     newFE->fd = fd;
     strcpy(newFE->filename, name);
+    newFE->filename[8] = '\0';
     newFE->next = NULL;
 
     // add new file entry to OFT
@@ -245,16 +248,15 @@ int tfs_closeFile(fileDescriptor fd) {
  * Write to file and update disk
  */
 int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
-    //     int tmp;
+    int tmp;
     int diskFd;
-    //     char filename[9];
-    //     char startBlock;
-    //     char sbBuf[BLOCKSIZE];
-    //     char freeBlockArr[numBlocks];
+    int ibIndex;
+    int wrBlockSize;
+    char filename[9];
     FileEntry *curr1 = headOFT;
-    //     FileEntry *curr2 = headOFT;
-    //     InodeBlock *currIn1 = headInode;
-    //     InodeBlock *currIn2 = headInode;
+    FileEntry *curr2 = headOFT;
+    SuperBlock sBlock;
+    InodeBlock iBlock;
 
     /* Check if disk is mounted and open it */
     if (mDisk == NULL) {
@@ -269,11 +271,12 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         }
     }
 
-    /* Confirm fd is in OFT */
+    /* Confirm fd is in OFT and get assoicate filename */
     int foundFd = -1;
     while (curr1 != NULL) {
         if (curr1->fd == fd) {
             foundFd = 0;
+            strcpy(filename, curr2->filename);
         }
         curr1 = curr1->next;
     }
@@ -281,31 +284,19 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         printf("> Error: File is not open. Existed with status: %d\n",
                WRITE_FILE_ERR);
         return WRITE_FILE_ERR;
+    } else {
+        printf("] Writing to '%s'\n", filename);  // debug
     }
-    printf("] Found %d in OFT\n", fd);  // debug
 
     /* Get write size in terms of blocks */
-    int wrBlockSize = (int)ceil((double)size / (BLOCKSIZE - 2));
+    wrBlockSize = (int)ceil((double)size / (BLOCKSIZE - 2));
 
-    //
-
-    //     /* Getting the free block array from super block */
-    //     if ((tmp = readBlock(diskFd, 0, superBlockBuf)) < 0) {
-    //         printf("> Error: Failed to read block '%s'. Existed with
-    //         status: %d\n",
-    //                OPEN_DISK_ERR);
-    //         return READ_BLOCK_ERR;
-    //     }
-    //     memcpy(freeBlockArr, superBlockBuf + 2, sizeof(freeBlockArr));
-
-    //     /* Get filename associated w/ file descriptor */
-    //     while (curr2 != NULL) {
-    //         if (curr2->fd == fd) {
-    //             memcpy(filename, curr2->filename,
-    //             sizeof(curr2->filename));
-    //         }
-    //         curr2 = curr2->next;
-    //     }
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               OPEN_DISK_ERR);
+        return READ_BLOCK_ERR;
+    }
 
     //     /* Check if inode exists and remove all data */
     //     if (tmpInode1 != NULL) {
@@ -333,11 +324,11 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     //                             return WRITE_BLOCK_ERR;
     //                         }
 
-    //                         freeBlockArr[i] = "F";
+    //                         fbArr[i] = "F";
     //                     }
 
-    //                     memcpy(superBlockBuf, freeBlockArr,
-    //                     sizeof(freeBlockArr));
+    //                     memcpy(superBlockBuf, fbArr,
+    //                     sizeof(fbArr));
 
     //                     // put updated super block into disk
     //                     if ((tmp = writeBlock(diskFd, 0, superBlockBuf))
@@ -359,41 +350,86 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     //             }
     //         }
     //     }
+    /*** Writing Inode and File Context Blocks ***/
 
-    //     /* Get start index of where to write in super block */
-    //     if ((startIdx = getIndexToWrite(diskFd, writeBlockSize,
-    //     freeBlockArr)) <
-    //         0) {
-    //         printf("> Error: No space to write to disk\n");
-    //         return NO_SPACE_ERR;
-    //     }
+    /* Get start index of where to write in super block */
+    if ((ibIndex = getStartBlock(diskFd, wrBlockSize, sBlock.dMap)) < 0) {
+        printf("> Error: No space to write to disk\n");
+        return NO_SPACE_ERR;
+    }
+    printf("] Writing inode at block %d\n", ibIndex);  // debug
 
-    //     /* Create inode for fd and write block */
-    //     InodeBlock *inodeBlock;
-    //     memcpy(inodeBlock->filename, filename, sizeof(filename));
-    //     inodeBlock->size = size;
-    //     inodeBlock->numOfContext = writeBlockSize;
-    //     inodeBlock->startIndex = startIdx;
-    //     inodeBlock->next = NULL;
+    /* Create inode for fd and write block */
+    iBlock.type = 2;
+    iBlock.mNum = 0x44;
+    strcpy(iBlock.filename, filename);
+    iBlock.index = ibIndex;
+    iBlock.size = size;
+    iBlock.numCtxBlock = wrBlockSize;
+    memset(iBlock.data, 0, sizeof(iBlock.data));
 
-    //     // add new inode to end of inode LL
-    //     if (headInode == NULL) {
-    //         headInode = inodeBlock;
-    //     } else {
-    //         while (tmpInode2->next != NULL) {
-    //             tmpInode2 = tmpInode2->next;
-    //         }
-    //         tmpInode2->next = inodeBlock;
-    //     }
+    // update disk map with new inode
+    sBlock.dMap[ibIndex] = 'I';
 
-    //     // write inode block into disk
-    //     if ((tmp = writeBlock(diskFd, startIdx, &inodeBlock)) < 0) {
-    //         printf("> Error: Failed to write in function:
-    //         tfs_writeFile\n"); return WRITE_BLOCK_ERR;
-    //     }
-    //     /* Write to file */
+    // write inode block into disk
+    if ((tmp = writeBlock(diskFd, ibIndex, &iBlock)) < 0) {
+        printf("> Error: Failed to write block. Exited with status: %d\n",
+               WRITE_BLOCK_ERR);
+        return WRITE_BLOCK_ERR;
+    }
 
-    return 0;
+    // write file context blocks to disk
+    int fcbIndex = ibIndex + 1;
+    size_t offset = 0;
+
+    while (offset < size) {
+        FileContextBlock fcBlock;
+        fcBlock.type = 3;
+        fcBlock.mNum = 0x44;
+
+        memset(fcBlock.context, 0, sizeof(fcBlock.context));
+        memcpy(fcBlock.context, buffer + offset, sizeof(fcBlock.context));
+
+        // Write the fcbBlock to disk
+        if (writeBlock(diskFd, fcbIndex, &fcBlock) < 0) {
+            printf("> Error: Failed to write block. Exited with status: %d\n",
+                   WRITE_BLOCK_ERR);
+        }
+
+        // update disk map with file context blocks
+        sBlock.dMap[fcbIndex] = 'C';
+
+        // Move to the next block
+        fcbIndex++;
+        offset += sizeof(fcBlock.context);
+    }
+
+    for (int i = 0; i < numBlocks; i++) {
+        printf("%c", sBlock.dMap[i]);
+        if ((i + 1) % 8 == 0) {
+            printf("\n");
+        }
+    }
+
+    // update super block w/inode
+    if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to write block. Exited with status: %d\n",
+               WRITE_BLOCK_ERR);
+        return WRITE_BLOCK_ERR;
+    }
+
+    /* Write to actual file */
+    if ((tmp = write(fd, buffer, size)) < 0) {
+        printf("> Error: Failed to write to file. Exited with status: %d\n",
+               WRITE_FILE_ERR);
+        return WRITE_FILE_ERR;
+    }
+
+    // log success
+    printf("] Sucessfully wrote to '%s' with status: %d\n", filename,
+           TFS_WRITE_FILE_SUCCESS);
+
+    return TFS_WRITE_FILE_SUCCESS;
 }
 
 /*********************** Helper Functions ***********************/
@@ -406,36 +442,36 @@ int setupFS(int diskFd) {
     int tmp = 0;
 
     /* Init Super Block */
-    SuperBlock superBlock;
-    superBlock.type = 1;
-    superBlock.mNum = 0x44;
+    SuperBlock sBlock;
+    sBlock.type = 1;
+    sBlock.mNum = 0x44;
 
-    // init free block bit vector
-    char freeBlockArr[numBlocks];
-    memset(freeBlockArr, 'F', numBlocks);
-    freeBlockArr[0] = 'T';  // set first block to taken by super block
+    // init disk map bit vector
+    char dMap[numBlocks];
+    memset(dMap, 'F', numBlocks);
+    dMap[0] = 'S';  // first block is super block
 
     // putting bit vector into super block
-    memset(superBlock.data, 0, sizeof(superBlock.data));
-    memcpy(superBlock.data, freeBlockArr, sizeof(freeBlockArr));
+    memset(sBlock.dMap, 0, sizeof(sBlock.dMap));
+    memcpy(sBlock.dMap, dMap, sizeof(dMap));
 
     // put super block into disk
-    if ((tmp = writeBlock(diskFd, 0, &superBlock)) < 0) {
+    if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
         printf("> Error: Failed to write block. Exited with status: %d\n",
                WRITE_BLOCK_ERR);
         return WRITE_BLOCK_ERR;
     }
 
     /* Init Free Blocks */
-    FreeBlock freeBlock;
-    freeBlock.type = 4;
-    freeBlock.mNum = 0x44;
+    FreeBlock fBlock;
+    fBlock.type = 4;
+    fBlock.mNum = 0x44;
 
-    memset(freeBlock.data, 0, sizeof(freeBlock.data));
+    memset(fBlock.data, 0, sizeof(fBlock.data));
 
     // put free blocks into disk
     for (int i = 1; i < numBlocks; i++) {
-        if ((tmp = writeBlock(diskFd, i, &freeBlock)) < 0) {
+        if ((tmp = writeBlock(diskFd, i, &fBlock)) < 0) {
             printf("> Error: Failed to write block. Exited with status: %d\n",
                    WRITE_BLOCK_ERR);
             return WRITE_BLOCK_ERR;
@@ -449,19 +485,19 @@ int setupFS(int diskFd) {
  * Checks if there is enough space in write in disk and retuns
  * index of where to start writing.
  */
-int getIndexToWrite(int diskFd, int writeBlockSize, char freeBlockArr[]) {
+int getStartBlock(int diskFd, int wrBlockSize, char dMap[]) {
     // get index of where to start writing in disk
     int l = -1;
     int r = -1;
-    for (int i = 0; i < strlen(freeBlockArr); i++) {
-        if (freeBlockArr[i] == 'F') {
+    for (int i = 0; i < numBlocks; i++) {
+        if (dMap[i] == 'F') {
             if (l == -1) {
                 // set the left boundary if it's the first 'F' encountered
                 l = i;
             }
             r = i;
             // check if the window is at least writeBlockSize + 1
-            if (r - l >= writeBlockSize + 1) {
+            if ((r - l + 1) >= wrBlockSize + 1) {
                 return l;
             }
         } else {
@@ -472,8 +508,4 @@ int getIndexToWrite(int diskFd, int writeBlockSize, char freeBlockArr[]) {
     }
     // did not find available size
     return -1;
-
-    //     for (int i = 0; i < sizeof(freeBlockArr); i++) {
-    //     printf("%c, ", freeBlockArr[i]);
-    // }
 }

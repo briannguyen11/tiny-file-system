@@ -19,16 +19,24 @@ typedef struct FileEntry {
 typedef struct SuperBlock {
     char type;
     char mNum;
-    char data[BLOCKSIZE - 2];
+    char dMap[BLOCKSIZE - 2];
 } SuperBlock;
 
 typedef struct InodeBlock {
+    char type;
+    char mNum;
     char filename[9];
+    char index;
     char size;
-    char startBlock;
     char numCtxBlock;
-    struct InodeBlock *next;  // LL to be dynamic
+    char data[BLOCKSIZE - 14];
 } InodeBlock;
+
+typedef struct FileContextBlock {
+    char type;
+    char mNum;
+    char context[BLOCKSIZE - 2];
+} FileContextBlock;
 
 typedef struct FreeBlock {
     char type;
@@ -46,6 +54,5 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
 
 /* Helper Functions */
 int setupFS(int diskFd);
-int getIndexToWrite(int diskFd, int writeBlockSize, char freeBlockArr[]);
-
+int getStartBlock(int diskFd, int wrBlockSize, char fbArr[]);
 #endif /* LIBTINYFS_H*/

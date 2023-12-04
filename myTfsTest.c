@@ -17,6 +17,8 @@ int fillBufferWithPhrase(char *inPhrase, char *Buffer, int size) {
 
 int main() {
     int res = 0;
+    int diskFd1;
+    int diskFd2;
 
     /************** Testing Disk Mount and Setup FS **************/
     // expected to fail
@@ -24,13 +26,13 @@ int main() {
 
     if (res < 0) {
         // create first disk
-        res = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);
+        diskFd1 = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);
         // create second disk
-        res = tfs_mkfs("tinyFSDiskRand", DEFAULT_DISK_SIZE);
+        diskFd2 = tfs_mkfs("tinyFSDiskRand", DEFAULT_DISK_SIZE);
         // mount to first disk
         res = tfs_mount(DEFAULT_DISK_NAME);
         // unmount first disk, mount to new disk
-        res = tfs_mount("tinyFSDiskRand");
+        // res = tfs_mount("tinyFSDiskRand");
     }
 
     /************** Testing file operations **************/
@@ -41,13 +43,13 @@ int main() {
 
     // closing files
     // res = tfs_closeFile(fd1);
-    res = tfs_closeFile(fd2);
+    // res = tfs_closeFile(fd2);
     // res = tfs_closeFile(999);
 
     // writiing to a file
     char *fileCont1;
-    int fileSize1 = 1500;
-    char filePhrase1[] = "hello world from file 1";
+    int fileSize1 = 300;
+    char filePhrase1[] = "hello world from file one";
 
     fileCont1 = (char *)malloc(fileSize1 * sizeof(char));
     if (fillBufferWithPhrase(filePhrase1, fileCont1, fileSize1) < 0) {
@@ -55,8 +57,12 @@ int main() {
         return -1;
     }
 
-    res = tfs_writeFile(fd1, fileCont1, fileSize1);
+    res = tfs_writeFile(fd2, fileCont1, fileSize1);
     free(fileCont1);
+
+    // test getStartBlock
+    // char testStartBlock[] = "TFFTFFFFFFFTTFFFFFFF";
+    // res = getStartBlock(diskFd1, 6, testStartBlock, sizeof(testStartBlock));
 
     return 0;
 }
