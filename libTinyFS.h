@@ -29,7 +29,8 @@ typedef struct InodeBlock {
     char index;
     char size;
     char numCtxBlock;
-    char data[BLOCKSIZE - 14];
+    char fp;
+    char data[BLOCKSIZE - 15];
 } InodeBlock;
 
 typedef struct FileContextBlock {

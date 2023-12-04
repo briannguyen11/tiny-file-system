@@ -365,6 +365,7 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     iBlock.index = ibIndex;
     iBlock.size = size;
     iBlock.numCtxBlock = numCtxBlock;
+    iBlock.fp = 0;
     memset(iBlock.data, 0, sizeof(iBlock.data));
 
     // update disk map with new inode
