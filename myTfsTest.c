@@ -47,9 +47,13 @@ int main() {
     // res = tfs_closeFile(999);
 
     // writiing to a file
-    char *fileCont1;
+    char *fileCont1, *fileCont2, *fileCont3;
     int fileSize1 = 300;
-    char filePhrase1[] = "hello world from file one";
+    int fileSize2 = 1500;
+    int fileSize3 = 700;
+    char filePhrase1[] = "file one";
+    char filePhrase2[] = "file two";
+    char filePhrase3[] = "file three";
 
     fileCont1 = (char *)malloc(fileSize1 * sizeof(char));
     if (fillBufferWithPhrase(filePhrase1, fileCont1, fileSize1) < 0) {
@@ -57,12 +61,28 @@ int main() {
         return -1;
     }
 
-    res = tfs_writeFile(fd2, fileCont1, fileSize1);
+    fileCont2 = (char *)malloc(fileSize2 * sizeof(char));
+    if (fillBufferWithPhrase(filePhrase2, fileCont2, fileSize2) < 0) {
+        perror("failed");
+        return -1;
+    }
+
+    fileCont3 = (char *)malloc(fileSize3 * sizeof(char));
+    if (fillBufferWithPhrase(filePhrase3, fileCont3, fileSize3) < 0) {
+        perror("failed");
+        return -1;
+    }
+
+    res = tfs_writeFile(fd1, fileCont1, fileSize1);
+    res = tfs_writeFile(fd2, fileCont2, fileSize2);
+    res = tfs_writeFile(fd1, fileCont3, fileSize3);
+
     free(fileCont1);
 
     // test getStartBlock
-    // char testStartBlock[] = "TFFTFFFFFFFTTFFFFFFF";
-    // res = getStartBlock(diskFd1, 6, testStartBlock, sizeof(testStartBlock));
+    // char testStartBlock[] = "SICCICCCCCCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+    // res = getStartBlock(diskFd1, 4, testStartBlock);
+    // printf("%d", getStartBlock);
 
     return 0;
 }
