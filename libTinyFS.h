@@ -20,7 +20,8 @@ typedef struct FileEntry {
 typedef struct SuperBlock {
     char type;
     char mNum;
-    char dMap[BLOCKSIZE - 2];
+    uint8_t numBlocks;
+    char dMap[BLOCKSIZE - 3];
 } SuperBlock;
 
 typedef struct InodeBlock {
@@ -58,7 +59,7 @@ int tfs_readByte(fileDescriptor fd, char *buffer);
 int tfs_seek(fileDescriptor FD, int offset);
 
 /* Helper Functions */
-int setupFS(int diskFd);
+int setupFS(int diskFd, int numBlocks);
 int removeInAndFcb(int diskFd, char *filename);
-int getStartBlock(int wrBlockSize, char dMap[]);
+int getStartBlock(int wrBlockSize, char dMap[], int numBlocks);
 #endif /* LIBTINYFS_H*/

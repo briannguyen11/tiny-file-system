@@ -20,22 +20,21 @@ int main() {
     int diskFd1;
     int diskFd2;
 
-    /************** Testing Disk Mount and Setup FS **************/
     // expected to fail
     res = tfs_mount(DEFAULT_DISK_NAME);
 
+    /************** Testing Disk Mount #1 and Setup FS **************/
+
     if (res < 0) {
-        // create first disk
+        // create two FS
         diskFd1 = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);  // 40 blocks
-        // create second disk
-        diskFd2 = tfs_mkfs("tinyFSDiskRand", 2560);  // 10 blocks
+        diskFd2 = tfs_mkfs("tinyFSDiskRand", 2560);                // 10 blocks
+
         // mount to first disk
-        // res = tfs_mount(DEFAULT_DISK_NAME);
-        // unmount first disk, mount to new disk
-        res = tfs_mount("tinyFSDiskRand");
+        res = tfs_mount(DEFAULT_DISK_NAME);
     }
 
-    /************** Testing file operations **************/
+    /** Testing file operations **/
     // creating files
     int fd1 = tfs_openFile("file1");
     int fd2 = tfs_openFile("file2");
@@ -78,7 +77,7 @@ int main() {
     res = tfs_writeFile(fd1, fileCont3, fileSize3);
     // res = tfs_deleteFile(fd2);
 
-    /************** Testing read and seek operations **************/
+    /** Testing read and seek operations **/
     // res = tfs_seek(fd2, 277);
 
     // char rByte;
@@ -96,10 +95,59 @@ int main() {
     //     i++;
     // }
 
+    /************** Testing Disk #2 Mount  **************/
+
+    res = tfs_mount("tinyFSDiskRand");
+
+    /** Testing file operations **/
+    // creating files
+    int fd4 = tfs_openFile("file4");
+    int fd5 = tfs_openFile("file5");
+    int fd6 = tfs_openFile("file6");
+
+    // closing files
+    // res = tfs_closeFile(fd1);
+    // res = tfs_closeFile(fd2);
+    // res = tfs_closeFile(999);
+
+    // writiing to a file
+    char *fileCont4, *fileCont5, *fileCont6;
+    int fileSize4 = 300;   // 2 + inode
+    int fileSize5 = 1200;  // 5 + inode
+    int fileSize6 = 700;   // 3 + inode
+    char filePhrase4[] = "fileFour";
+    char filePhrase5[] = "fileFive";
+    char filePhrase6[] = "fileSix";
+
+    fileCont4 = (char *)malloc(fileSize4 * sizeof(char));
+    if (fillBufferWithPhrase(filePhrase4, fileCont4, fileSize4) < 0) {
+        perror("failed");
+        return -1;
+    }
+
+    fileCont5 = (char *)malloc(fileSize5 * sizeof(char));
+    if (fillBufferWithPhrase(filePhrase5, fileCont5, fileSize5) < 0) {
+        perror("failed");
+        return -1;
+    }
+
+    fileCont6 = (char *)malloc(fileSize6 * sizeof(char));
+    if (fillBufferWithPhrase(filePhrase6, fileCont6, fileSize6) < 0) {
+        perror("failed");
+        return -1;
+    }
+
+    res = tfs_writeFile(fd4, fileCont4, fileSize4);
+    res = tfs_writeFile(fd5, fileCont5, fileSize5);
+    res = tfs_writeFile(fd6, fileCont6, fileSize6);
+
     /************** Clean Up **************/
     free(fileCont1);
     free(fileCont2);
     free(fileCont3);
+    free(fileCont4);
+    free(fileCont5);
+    free(fileCont6);
 
     // test getStartBlock
     // char testStartBlock[] = "SICCICCCCCCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
