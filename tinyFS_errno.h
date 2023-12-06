@@ -8,6 +8,8 @@
 #define TFS_OPEN_FILE_SUCCESS 203
 #define TFS_CLOSE_FILE_SUCCESS 204
 #define TFS_WRITE_FILE_SUCCESS 205
+#define TFS_SEEK_FILE_SUCCESS
+
 
 // Error Status
 #define OPEN_DISK_ERR -400
@@ -20,5 +22,6 @@
 #define CLOSE_FILE_ERR -407
 #define WRITE_FILE_ERR -408
 #define NO_SPACE_ERR -409
+#define INVALID_SEEK_ERR -410
 
 #endif /* TINYFSERRNO_H*/
