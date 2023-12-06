@@ -33,8 +33,11 @@ test:
 run:
 	./myTfsTest
 
-dump:
+dump1:
 	hexdump -C -v tinyFSDisk
+
+dump2:
+	hexdump -C -v tinyFSDiskRand
 
 clean:
 	rm tinyFSDisk tinyFSDiskRand file1 file2 file3

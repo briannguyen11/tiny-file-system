@@ -26,13 +26,13 @@ int main() {
 
     if (res < 0) {
         // create first disk
-        diskFd1 = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);
+        diskFd1 = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);  // 40 blocks
         // create second disk
-        diskFd2 = tfs_mkfs("tinyFSDiskRand", DEFAULT_DISK_SIZE);
+        diskFd2 = tfs_mkfs("tinyFSDiskRand", 2560);  // 10 blocks
         // mount to first disk
-        res = tfs_mount(DEFAULT_DISK_NAME);
+        // res = tfs_mount(DEFAULT_DISK_NAME);
         // unmount first disk, mount to new disk
-        // res = tfs_mount("tinyFSDiskRand");
+        res = tfs_mount("tinyFSDiskRand");
     }
 
     /************** Testing file operations **************/
@@ -48,9 +48,9 @@ int main() {
 
     // writiing to a file
     char *fileCont1, *fileCont2, *fileCont3;
-    int fileSize1 = 300;
-    int fileSize2 = 1500;
-    int fileSize3 = 700;
+    int fileSize1 = 300;   // 2 + inode
+    int fileSize2 = 1200;  // 5 + inode
+    int fileSize3 = 700;   // 3 + inode
     char filePhrase1[] = "fileOne";
     char filePhrase2[] = "fileTwo";
     char filePhrase3[] = "fileThree";
@@ -75,28 +75,31 @@ int main() {
 
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
     res = tfs_writeFile(fd2, fileCont2, fileSize2);
-    res = tfs_writeFile(fd3, fileCont3, fileSize3);
-    res = tfs_deleteFile(fd2);
+    res = tfs_writeFile(fd1, fileCont3, fileSize3);
+    // res = tfs_deleteFile(fd2);
 
     /************** Testing read and seek operations **************/
-    res = tfs_seek(fd1, 277);
+    // res = tfs_seek(fd2, 277);
 
-    char rByte;
-    // res = tfs_readByte(fd1, &rByte);
-    // printf("\nRead Byte: %c\n", rByte);
+    // char rByte;
+    // // res = tfs_readByte(fd1, &rByte);
+    // // printf("\nRead Byte: %c\n", rByte);
 
-    printf("More Read Bytes: \n");
-    // go until readByte fails
-    int i = 0;
-    while (tfs_readByte(fd1, &rByte) >= 0) {
-        printf("%c", rByte);
-        if ((i + 1) % 16 == 0) {
-            printf("\n");
-        }
-        i++;
-    }
+    // printf("More Read Bytes: \n");
+    // // go until readByte fails
+    // int i = 0;
+    // while (tfs_readByte(fd2, &rByte) >= 0) {
+    //     printf("%c", rByte);
+    //     if ((i + 1) % 16 == 0) {
+    //         printf("\n");
+    //     }
+    //     i++;
+    // }
 
+    /************** Clean Up **************/
     free(fileCont1);
+    free(fileCont2);
+    free(fileCont3);
 
     // test getStartBlock
     // char testStartBlock[] = "SICCICCCCCCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
