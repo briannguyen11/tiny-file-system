@@ -79,6 +79,8 @@ int main() {
     res = tfs_deleteFile(fd2);
 
     /************** Testing read and seek operations **************/
+    res = tfs_seek(fd1, 277);
+
     char rByte;
     // res = tfs_readByte(fd1, &rByte);
     // printf("\nRead Byte: %c\n", rByte);

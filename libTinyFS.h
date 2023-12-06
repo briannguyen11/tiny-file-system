@@ -55,6 +55,7 @@ int tfs_closeFile(fileDescriptor fd);
 int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
 int tfs_deleteFile(fileDescriptor fd);
 int tfs_readByte(fileDescriptor fd, char *buffer);
+int tfs_seek(fileDescriptor FD, int offset);
 
 /* Helper Functions */
 int setupFS(int diskFd);

@@ -621,10 +621,11 @@ int tfs_seek(fileDescriptor fd, int offset) {
     if (foundIn == 0) {
         /* Check if seek is valid */
         if (offset > size) {
+            printf("> Error: Failed to seek. Exited with status: %d\n", INVALID_SEEK_ERR);
             return INVALID_SEEK_ERR;
         }
 
-        tmpIn.fp = (char)offset;
+        tmpIn.fp = offset;
 
         // Update fp in inode block in disk
         if ((tmp = writeBlock(diskFd, tmpIn.posInDsk, &tmpIn)) < 0) {
@@ -634,6 +635,8 @@ int tfs_seek(fileDescriptor fd, int offset) {
             return WRITE_BLOCK_ERR;
         }
     }
+    printf("] Sucessfully seeked '%s' with status: %d\n", filename,
+        TFS_SEEK_FILE_SUCCESS);
     return TFS_SEEK_FILE_SUCCESS;
 }
 
