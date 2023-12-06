@@ -26,10 +26,10 @@ typedef struct InodeBlock {
     char type;
     char mNum;
     char filename[9];
-    char index;
-    char size;
-    char numCtxBlock;
+    char fSize;
+    char fcbLen;
     char fp;
+    char posInDsk;
     char data[BLOCKSIZE - 15];
 } InodeBlock;
 
@@ -52,8 +52,11 @@ int tfs_unmount();
 fileDescriptor tfs_openFile(char *name);
 int tfs_closeFile(fileDescriptor fd);
 int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
+int tfs_deleteFile(fileDescriptor fd);
+int tfs_readByte(fileDescriptor fd, char *buffer);
 
 /* Helper Functions */
 int setupFS(int diskFd);
-int getStartBlock(int diskFd, int wrBlockSize, char fbArr[]);
+int removeInAndFcb(int diskFd, char *filename);
+int getStartBlock(int wrBlockSize, char dMap[]);
 #endif /* LIBTINYFS_H*/

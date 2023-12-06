@@ -228,13 +228,13 @@ int tfs_closeFile(fileDescriptor fd) {
 
         // fd not found -> return > Error
         if (foundFd < 0) {
-            printf("> Error: File not found. Exited with status %d\n",
+            printf("> Error: File is not open. Exited with status %d\n",
                    CLOSE_FILE_ERR);
             return CLOSE_FILE_ERR;
         }
     } else {
         // nothing in OFT -> no file to close
-        printf("> Error: Nothing in OFT. Exited with status %d\n",
+        printf("> Error: File is not open. Exited with status %d\n",
                CLOSE_FILE_ERR);
         return CLOSE_FILE_ERR;
     }
@@ -251,9 +251,7 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     int tmp;
     int diskFd;
     int ibIndex;
-    int numCtxBlock;
-    int rmvIbIndex;
-    int rmvBlocks;
+    int fcbLen;
     char filename[9];
     FileEntry *curr = headOFT;
     SuperBlock sBlock;
@@ -288,97 +286,60 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     }
 
     /* Get write size in terms of blocks */
-    numCtxBlock = (int)ceil((double)size / (BLOCKSIZE - 2));
+    fcbLen = (int)ceil((double)size / (BLOCKSIZE - 2));
 
-    /* Get metadata from super block */
+    // /* Get metadata from super block */
+    // if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+    //     printf("> Error: Failed to read block. Existed with status: %d\n ",
+    //            READ_BLOCK_ERR);
+    //     return READ_BLOCK_ERR;
+    // }
+
+    // /* Initial check to see if can write to file */
+    // if ((ibIndex = getStartBlock(fcbLen, sBlock.dMap)) < 0) {
+    //     printf("> Error: No space to write to disk\n");
+    //     return NO_SPACE_ERR;
+    // }
+    // printf("] Writing inode to block %d\n", ibIndex);  // debug
+
+    /* Check if inode exists -> Remove inode and FCBs */
+    tmp = removeInAndFcb(diskFd, filename);
+
+    /* Get updated metadata from super block after deletion */
     if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
         printf("> Error: Failed to read block. Existed with status: %d\n ",
                READ_BLOCK_ERR);
         return READ_BLOCK_ERR;
     }
 
-    /***** Check if inode exists -> Remove inode and FCBs *****/
-
-    // compare filenames to determine if inode exist
-    int foundIn = -1;
-    InodeBlock tmpIn;
-    for (int i = 0; i < numBlocks; i++) {
-        if (sBlock.dMap[i] == 'I') {
-            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
-                printf(
-                    "> Error: Failed to read block. Exited with status: %d\n",
-                    READ_BLOCK_ERR);
-                return READ_BLOCK_ERR;
-            }
-            if (strcmp(tmpIn.filename, filename) == 0) {
-                foundIn = 0;
-                rmvIbIndex = i;
-                rmvBlocks = tmpIn.numCtxBlock + 1;  // add one bc inode
-                break;
-            }
-        }
-    }
-
-    // if inode exist, overwrite inode and file context block with free
-    if (foundIn != -1) {
-        FreeBlock fBlock;
-        fBlock.type = 4;
-        fBlock.mNum = 0x44;
-        memset(fBlock.data, 0, sizeof(fBlock.data));
-
-        for (int i = 0; i < rmvBlocks; i++) {
-            if (writeBlock(diskFd, rmvIbIndex, &fBlock) < 0) {
-                printf(
-                    "> Error: Failed to write block. Exited with status: %d\n",
-                    WRITE_BLOCK_ERR);
-            }
-
-            // update disk map with new free block
-            sBlock.dMap[rmvIbIndex] = 'F';
-
-            // move to the next block
-            rmvIbIndex++;
-        }
-
-        printf("After delete: \n");
-        for (int i = 0; i < numBlocks; i++) {
-            printf("%c", sBlock.dMap[i]);
-            if ((i + 1) % 8 == 0) {
-                printf("\n");
-            }
-        }
-    }
-
-    /***** Writing inode and file context blocks *****/
-
-    /* Get start index of where to write in super block */
-    if ((ibIndex = getStartBlock(diskFd, numCtxBlock, sBlock.dMap)) < 0) {
+    /* Get start update index of where to write in super block after deletion */
+    if ((ibIndex = getStartBlock(fcbLen, sBlock.dMap)) < 0) {
         printf("> Error: No space to write to disk\n");
         return NO_SPACE_ERR;
     }
-    printf("] Writing inode at block %d\n", ibIndex);  // debug
+    printf("] Writing inode to block %d\n", ibIndex);  // debug
 
     /* Create inode for fd and write block */
     iBlock.type = 2;
     iBlock.mNum = 0x44;
     strcpy(iBlock.filename, filename);
-    iBlock.index = ibIndex;
-    iBlock.size = size;
-    iBlock.numCtxBlock = numCtxBlock;
+    iBlock.fSize = size;
+    iBlock.fcbLen = fcbLen;
     iBlock.fp = 0;
+    iBlock.posInDsk = ibIndex;
     memset(iBlock.data, 0, sizeof(iBlock.data));
 
-    // update disk map with new inode
+    /* Update disk map with new inode */
     sBlock.dMap[ibIndex] = 'I';
 
-    // write inode block into disk
+    /* Write inode block into disk */
     if ((tmp = writeBlock(diskFd, ibIndex, &iBlock)) < 0) {
         printf("> Error: Failed to write block. Exited with status: %d\n",
                WRITE_BLOCK_ERR);
         return WRITE_BLOCK_ERR;
     }
 
-    // write file context blocks to disk
+    /* Write file context blocks to disk */
     int fcbIndex = ibIndex + 1;
     size_t offset = 0;
 
@@ -388,13 +349,13 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         fcBlock.mNum = 0x44;
 
         memset(fcBlock.context, 0, sizeof(fcBlock.context));
-        size_t ctx;
+        size_t ctxSize;
         if (size - offset > sizeof(fcBlock.context)) {
-            ctx = sizeof(fcBlock.context);
+            ctxSize = sizeof(fcBlock.context);
         } else {
-            ctx = size - offset;
+            ctxSize = size - offset;
         }
-        memcpy(fcBlock.context, buffer + offset, ctx);
+        memcpy(fcBlock.context, buffer + offset, ctxSize);
 
         // write the fcbBlock to disk
         if (writeBlock(diskFd, fcbIndex, &fcBlock) < 0) {
@@ -410,18 +371,19 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         offset += sizeof(fcBlock.context);
     }
 
+    /* Update super block w/inode */
+    if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to write block. Exited with status: %d\n",
+               WRITE_BLOCK_ERR);
+        return WRITE_BLOCK_ERR;
+    }
+
+    printf("Just wrote inode\n");
     for (int i = 0; i < numBlocks; i++) {
         printf("%c", sBlock.dMap[i]);
         if ((i + 1) % 8 == 0) {
             printf("\n");
         }
-    }
-
-    // update super block w/inode
-    if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to write block. Exited with status: %d\n",
-               WRITE_BLOCK_ERR);
-        return WRITE_BLOCK_ERR;
     }
 
     /* Write to actual file */
@@ -436,6 +398,188 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
            TFS_WRITE_FILE_SUCCESS);
 
     return TFS_WRITE_FILE_SUCCESS;
+}
+
+/**
+ * Delete file (must be open) and update disk
+ */
+int tfs_deleteFile(fileDescriptor fd) {
+    int tmp;
+    int diskFd;
+    int foundFd = -1;
+    char filename[9];
+    FileEntry *curr = headOFT;
+
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Existed with status: %d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Confirm fd is in OFT, get assoicate filename, close the file */
+    while (curr != NULL) {
+        if (curr->fd == fd) {
+            foundFd = 0;
+            strcpy(filename, curr->filename);  // getting filename
+            tmp = tfs_closeFile(fd);           // close file before deletion
+            break;
+        }
+        curr = curr->next;
+    }
+    if (foundFd < 0) {
+        printf("> Error: File is not open. Existed with status: %d\n",
+               DELETE_FILE_ERR);
+        return DELETE_FILE_ERR;
+    }
+
+    /* Remove inode and associated FCBs*/
+    if ((tmp = removeInAndFcb(diskFd, filename)) < 0) {
+        printf("> Error: Could not delete '%s'. Existed with status: %d\n",
+               filename, DELETE_FILE_ERR);
+        return DELETE_FILE_ERR;
+    }
+
+    /* Delete actual file */
+    if (remove(filename) < 0) {
+        printf("> Error: Could not delete '%s'. Existed with status: %d\n",
+               filename, DELETE_FILE_ERR);
+    }
+    // log success
+    printf("] Sucessfully deleted '%s' with status: %d\n", filename,
+           TFS_DELETE_FILE_SUCCESS);
+    return TFS_DELETE_FILE_SUCCESS;
+}
+
+/**
+ * Reads one byte from file and coppies it into buffer.
+ */
+int tfs_readByte(fileDescriptor fd, char *buffer) {
+    int tmp;
+    int diskFd;
+    int fp;
+    int fSize;
+    int fcbIndex;
+    int foundIn = -1;
+    char filename[9];
+    FileEntry *curr = headOFT;
+    SuperBlock sBlock;
+    InodeBlock iBlock;
+    FileContextBlock tmpFCB;
+
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Existed with status: %d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Confirm fd is in OFT and get assoicate filename */
+    int foundFd = -1;
+    while (curr != NULL) {
+        if (curr->fd == fd) {
+            foundFd = 0;
+            strcpy(filename, curr->filename);  // getting filename
+        }
+        curr = curr->next;
+    }
+    if (foundFd < 0) {
+        printf("> Error: File is not open. Existed with status: %d\n",
+               WRITE_FILE_ERR);
+        return WRITE_FILE_ERR;
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Get inode to know file size and fp */
+    for (int i = 0; i < numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            if ((tmp = readBlock(diskFd, i, &iBlock)) < 0) {
+                printf(
+                    "> Error: Failed to read block. Exited with status: %d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if (strcmp(iBlock.filename, filename) == 0) {
+                foundIn = 0;
+                fp = iBlock.fp;
+                fSize = iBlock.fSize;
+                fcbIndex = iBlock.posInDsk + 1;
+                break;
+            }
+        }
+    }
+
+    /* Read byte */
+    if (foundIn == 0) {
+        // copying fcb into temp buffer
+        int offset = 0;
+        char tmpBuf[iBlock.fcbLen * (BLOCKSIZE - 2)];  // 254 bytes
+        for (int i = 0; i < iBlock.fcbLen; i++) {
+            if ((tmp = readBlock(diskFd, fcbIndex, &tmpFCB)) < 0) {
+                printf(
+                    "> Error: Failed to read block. Exited with status: %d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            memcpy(tmpBuf + offset, tmpFCB.context, sizeof(tmpFCB.context));
+            fcbIndex++;
+            offset += sizeof(tmpFCB.context);
+        }
+
+        // printf("fcblen: %d\n", fcbLen);
+        // printf("size: %lu\n", sizeof(tmpBuf));
+        // printf("Read byte buffer\n");
+        // for (int i = 0; i < sizeof(tmpBuf); i++) {
+        //     if (tmpBuf[i] != 0x00) {
+        //         printf("%c", tmpBuf[i]);
+        //     } else {
+        //         printf("%c", 'x');
+        //     }
+
+        //     if ((i + 1) % 16 == 0) {
+        //         printf("\n");
+        //     }
+        // }
+
+        // Check if fp did not exceed file size -> copy byte at fp to buffer
+        if (fp < fSize) {
+            *buffer = tmpBuf[fp];
+            fp++;
+
+            // update fp in inode block in disk
+            iBlock.fp = (char)fp;
+            if ((tmp = writeBlock(diskFd, iBlock.posInDsk, &iBlock)) < 0) {
+                printf(
+                    "> Error: Failed to write block. Exited with status: %d\n",
+                    WRITE_BLOCK_ERR);
+                return WRITE_BLOCK_ERR;
+            }
+        } else {
+            printf("> Error: Failed to read byte. Exited with status: %d\n",
+                   READ_BYTE_ERR);
+            return READ_BYTE_ERR;
+        }
+    }
+
+    return TFS_READ_BYTE_SUCESS;
 }
 
 /*********************** Helper Functions ***********************/
@@ -478,10 +622,94 @@ int setupFS(int diskFd) {
     // put free blocks into disk
     for (int i = 1; i < numBlocks; i++) {
         if ((tmp = writeBlock(diskFd, i, &fBlock)) < 0) {
-            printf("> Error: Failed to write block. Exited with status: %d\n",
-                   WRITE_BLOCK_ERR);
+            printf(
+                "> Error: Failed to write block. Exited with status: "
+                "%d\n",
+                WRITE_BLOCK_ERR);
             return WRITE_BLOCK_ERR;
         }
+    }
+
+    return 0;
+}
+
+/**
+ * Remove by overwriting inode and FCB with free blocks
+ */
+int removeInAndFcb(int diskFd, char *filename) {
+    int tmp;
+    int rmvIbIndex;
+    int rmvBlocks;
+    int foundIn = -1;
+    SuperBlock sBlock;
+    InodeBlock tmpIn;
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Get inode and FCBs to delete */
+    for (int i = 0; i < numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
+                printf(
+                    "> Error: Failed to read block. Exited with "
+                    "status: %d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if (strcmp(tmpIn.filename, filename) == 0) {
+                foundIn = 0;
+                rmvIbIndex = i;
+                rmvBlocks = tmpIn.fcbLen + 1;  // add one bc inode
+                break;
+            }
+        }
+    }
+
+    /* Delete inode and associated FCBs */
+    if (foundIn == 0) {
+        FreeBlock fBlock;
+        fBlock.type = 4;
+        fBlock.mNum = 0x44;
+        memset(fBlock.data, 0, sizeof(fBlock.data));
+
+        for (int i = 0; i < rmvBlocks; i++) {
+            if (writeBlock(diskFd, rmvIbIndex, &fBlock) < 0) {
+                printf(
+                    "> Error: Failed to write block. Exited with "
+                    "status: %d\n",
+                    WRITE_BLOCK_ERR);
+                return WRITE_BLOCK_ERR;
+            }
+
+            // update disk map with new free block
+            sBlock.dMap[rmvIbIndex] = 'F';
+
+            // move to the next block
+            rmvIbIndex++;
+        }
+    } else {
+        return -1;
+    }
+
+    // debug
+    printf("Just deleted: \n");
+    for (int i = 0; i < numBlocks; i++) {
+        printf("%c", sBlock.dMap[i]);
+        if ((i + 1) % 8 == 0) {
+            printf("\n");
+        }
+    }
+
+    /* Update super block w/ new free blocks */
+    if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to write block. Exited with status: %d\n",
+               WRITE_BLOCK_ERR);
+        return WRITE_BLOCK_ERR;
     }
 
     return 0;
@@ -491,19 +719,20 @@ int setupFS(int diskFd) {
  * Checks if there is enough space in write in disk and retuns
  * index of where to start writing.
  */
-int getStartBlock(int diskFd, int numCtxBlock, char dMap[]) {
+int getStartBlock(int fcbLen, char dMap[]) {
     // get index of where to start writing in disk
     int l = -1;
     int r = -1;
     for (int i = 0; i < numBlocks; i++) {
         if (dMap[i] == 'F') {
             if (l == -1) {
-                // set the left boundary if it's the first 'F' encountered
+                // set the left boundary if it's the first 'F'
+                // encountered
                 l = i;
             }
             r = i;
             // check if the window is at least writeBlockSize + 1
-            if ((r - l + 1) >= numCtxBlock + 1) {
+            if ((r - l + 1) >= fcbLen + 1) {
                 return l;
             }
         } else {
