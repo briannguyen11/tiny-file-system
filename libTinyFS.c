@@ -285,25 +285,11 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         return WRITE_FILE_ERR;
     }
 
-    /* Get write size in terms of blocks */
-    fcbLen = (int)ceil((double)size / (BLOCKSIZE - 2));
-
-    // /* Get metadata from super block */
-    // if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
-    //     printf("> Error: Failed to read block. Existed with status: %d\n ",
-    //            READ_BLOCK_ERR);
-    //     return READ_BLOCK_ERR;
-    // }
-
-    // /* Initial check to see if can write to file */
-    // if ((ibIndex = getStartBlock(fcbLen, sBlock.dMap)) < 0) {
-    //     printf("> Error: No space to write to disk\n");
-    //     return NO_SPACE_ERR;
-    // }
-    // printf("] Writing inode to block %d\n", ibIndex);  // debug
-
     /* Check if inode exists -> Remove inode and FCBs */
     tmp = removeInAndFcb(diskFd, filename);
+
+    /* Get write size in terms of blocks */
+    fcbLen = (int)ceil((double)size / (BLOCKSIZE - 2));
 
     /* Get updated metadata from super block after deletion */
     if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
@@ -545,12 +531,13 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
         }
 
         // Check if fp did not exceed file size -> copy byte at fp to buffer
+        // printf("Size: %d", fSize);
+        // printf("| fp: %d | byte:", fp);
         if (fp < fSize) {
             *buffer = tmpBuf[fp];
             fp++;
-
             // update fp in inode block in disk
-            iBlock.fp = (char)fp;
+            iBlock.fp = fp;
             if ((tmp = writeBlock(diskFd, iBlock.posInDsk, &iBlock)) < 0) {
                 printf(
                     "> Error: Failed to write block. Exited with status: %d\n",
@@ -558,7 +545,7 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
                 return WRITE_BLOCK_ERR;
             }
         } else {
-            printf("> Error: Failed to read byte. Exited with status: %d\n",
+            printf("\n> Error: Failed to read byte. Exited with status: %d\n",
                    READ_BYTE_ERR);
             return READ_BYTE_ERR;
         }

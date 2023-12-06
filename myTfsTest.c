@@ -75,22 +75,24 @@ int main() {
 
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
     res = tfs_writeFile(fd2, fileCont2, fileSize2);
-    res = tfs_writeFile(fd1, fileCont3, fileSize3);
+    res = tfs_writeFile(fd3, fileCont3, fileSize3);
     res = tfs_deleteFile(fd2);
 
     /************** Testing read and seek operations **************/
-    // char rByte;
+    char rByte;
+    // res = tfs_readByte(fd1, &rByte);
+    // printf("\nRead Byte: %c\n", rByte);
 
-    // printf("Read Bytes: \n");
-    // // go until readByte fails
-    // int i = 0;
-    // while (tfs_readByte(fd1, &rByte) >= 0) {
-    //     printf("%c", rByte);
-    //     if ((i + 1) % 16 == 0) {
-    //         printf("\n");
-    //     }
-    //     i++;
-    // }
+    printf("More Read Bytes: \n");
+    // go until readByte fails
+    int i = 0;
+    while (tfs_readByte(fd1, &rByte) >= 0) {
+        printf("%c", rByte);
+        if ((i + 1) % 16 == 0) {
+            printf("\n");
+        }
+        i++;
+    }
 
     free(fileCont1);
 
