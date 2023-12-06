@@ -26,11 +26,11 @@ typedef struct InodeBlock {
     char type;
     char mNum;
     char filename[9];
-    char fSize;
-    char fcbLen;
-    char fp;
-    char posInDsk;
-    char data[BLOCKSIZE - 15];
+    uint16_t fp;
+    uint16_t fSize;
+    uint8_t fcbLen;
+    uint8_t posInDsk;
+    char data[BLOCKSIZE - 17];
 } InodeBlock;
 
 typedef struct FileContextBlock {
