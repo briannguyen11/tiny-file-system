@@ -51,9 +51,9 @@ int main() {
     int fileSize1 = 300;
     int fileSize2 = 1500;
     int fileSize3 = 700;
-    char filePhrase1[] = "file one";
-    char filePhrase2[] = "file two";
-    char filePhrase3[] = "file three";
+    char filePhrase1[] = "fileOne";
+    char filePhrase2[] = "fileTwo";
+    char filePhrase3[] = "fileThree";
 
     fileCont1 = (char *)malloc(fileSize1 * sizeof(char));
     if (fillBufferWithPhrase(filePhrase1, fileCont1, fileSize1) < 0) {
@@ -76,6 +76,21 @@ int main() {
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
     res = tfs_writeFile(fd2, fileCont2, fileSize2);
     res = tfs_writeFile(fd1, fileCont3, fileSize3);
+    res = tfs_deleteFile(fd2);
+
+    /************** Testing read and seek operations **************/
+    // char rByte;
+
+    // printf("Read Bytes: \n");
+    // // go until readByte fails
+    // int i = 0;
+    // while (tfs_readByte(fd1, &rByte) >= 0) {
+    //     printf("%c", rByte);
+    //     if ((i + 1) % 16 == 0) {
+    //         printf("\n");
+    //     }
+    //     i++;
+    // }
 
     free(fileCont1);
 

@@ -28,7 +28,7 @@ cleanDisk:
 	rm disk0.dsk disk1.dsk disk2.dsk disk3.dsk
 
 test:
-	$(CC) $(CFLAGS) libDisk.c libTinyFS.c myTfsTest.c -o  myTfsTest
+	$(CC) $(CFLAGS) libDisk.c libTinyFS.c myTfsTest.c -o  myTfsTest -lm
 
 run:
 	./myTfsTest
