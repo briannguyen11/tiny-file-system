@@ -400,86 +400,6 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     return TFS_WRITE_FILE_SUCCESS;
 }
 
-int tfs_seek(fileDescriptor fd, int offset) {
-    int tmp;
-    int diskFd;
-    int size;
-    char filename[9];
-    FileEntry *curr = headOFT;
-    SuperBlock sBlock;
-    /* Check if disk is mounted and open it */
-    if (mDisk == NULL) {
-        return NO_DISK_MOUNTED_ERR;
-    } else {
-        // open mounted disk
-        if ((diskFd = openDisk(mDisk, 0)) < 0) {
-            printf(
-                "> Error: Failed to open disk '%s'. Existed with status: %d\n",
-                mDisk, OPEN_DISK_ERR);
-            return OPEN_DISK_ERR;
-        }
-    }
-
-    /* Confirm fd is in OFT and get assoicate filename */
-    int foundFd = -1;
-    while (curr != NULL) {
-        if (curr->fd == fd) {
-            foundFd = 0;
-            strcpy(filename, curr->filename);  // getting filename
-        }
-        curr = curr->next;
-    }
-    if (foundFd < 0) {
-        printf("> Error: File is not open. Existed with status: %d\n",
-               WRITE_FILE_ERR);
-        return WRITE_FILE_ERR;
-    }
-
-    /* Get metadata from super block */
-    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to read block. Existed with status: %d\n ",
-               READ_BLOCK_ERR);
-        return READ_BLOCK_ERR;
-    }
-
-    /* Find inode to get size of file */
-    int foundIn = -1;
-    InodeBlock tmpIn;
-    for (int i = 0; i < numBlocks; i++) {
-        if (sBlock.dMap[i] == 'I') {
-            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
-                printf(
-                    "> Error: Failed to read block. Exited with status: %d\n",
-                    READ_BLOCK_ERR);
-                return READ_BLOCK_ERR;
-            }
-            if (strcmp(tmpIn.filename, filename) == 0) {
-                foundIn = 0;
-                size = tmpIn.fSize;
-                break;
-            }
-        }
-    }
-
-    if (foundIn == 0) {
-        /* Check if seek is valid */
-        if (offset > size) {
-            return INVALID_SEEK_ERR;
-        }
-
-        tmpIn.fp = (char)offset;
-
-        // Update fp in inode block in disk
-        if ((tmp = writeBlock(diskFd, tmpIn.posInDsk, &tmpIn)) < 0) {
-            printf(
-                "> Error: Failed to write block. Exited with status: %d\n",
-                WRITE_BLOCK_ERR);
-            return WRITE_BLOCK_ERR;
-        }
-    }
-    return TFS_SEEK_FILE_SUCCESS;
-}
-
 /**
  * Delete file (must be open) and update disk
  */
@@ -624,21 +544,6 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
             offset += sizeof(tmpFCB.context);
         }
 
-        // printf("fcblen: %d\n", fcbLen);
-        // printf("size: %lu\n", sizeof(tmpBuf));
-        // printf("Read byte buffer\n");
-        // for (int i = 0; i < sizeof(tmpBuf); i++) {
-        //     if (tmpBuf[i] != 0x00) {
-        //         printf("%c", tmpBuf[i]);
-        //     } else {
-        //         printf("%c", 'x');
-        //     }
-
-        //     if ((i + 1) % 16 == 0) {
-        //         printf("\n");
-        //     }
-        // }
-
         // Check if fp did not exceed file size -> copy byte at fp to buffer
         if (fp < fSize) {
             *buffer = tmpBuf[fp];
@@ -660,6 +565,89 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
     }
 
     return TFS_READ_BYTE_SUCESS;
+}
+
+/**
+ * seek function
+ */
+int tfs_seek(fileDescriptor fd, int offset) {
+    int tmp;
+    int diskFd;
+    int size;
+    char filename[9];
+    FileEntry *curr = headOFT;
+    SuperBlock sBlock;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Existed with status: %d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Confirm fd is in OFT and get assoicate filename */
+    int foundFd = -1;
+    while (curr != NULL) {
+        if (curr->fd == fd) {
+            foundFd = 0;
+            strcpy(filename, curr->filename);  // getting filename
+        }
+        curr = curr->next;
+    }
+    if (foundFd < 0) {
+        printf("> Error: File is not open. Existed with status: %d\n",
+               WRITE_FILE_ERR);
+        return WRITE_FILE_ERR;
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Find inode to get size of file */
+    int foundIn = -1;
+    InodeBlock tmpIn;
+    for (int i = 0; i < numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
+                printf(
+                    "> Error: Failed to read block. Exited with status: %d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if (strcmp(tmpIn.filename, filename) == 0) {
+                foundIn = 0;
+                size = tmpIn.fSize;
+                break;
+            }
+        }
+    }
+
+    if (foundIn == 0) {
+        /* Check if seek is valid */
+        if (offset > size) {
+            return INVALID_SEEK_ERR;
+        }
+
+        tmpIn.fp = (char)offset;
+
+        // Update fp in inode block in disk
+        if ((tmp = writeBlock(diskFd, tmpIn.posInDsk, &tmpIn)) < 0) {
+            printf(
+                "> Error: Failed to write block. Exited with status: %d\n",
+                WRITE_BLOCK_ERR);
+            return WRITE_BLOCK_ERR;
+        }
+    }
+    return TFS_SEEK_FILE_SUCCESS;
 }
 
 /*********************** Helper Functions ***********************/
