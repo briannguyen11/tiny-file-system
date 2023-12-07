@@ -78,22 +78,23 @@ int main() {
     // res = tfs_deleteFile(fd2);
 
     /** Testing read and seek operations **/
-    // res = tfs_seek(fd2, 277);
+    res = tfs_rename(fd2, "newName");
+    res = tfs_seek(fd2, 277);
 
-    // char rByte;
-    // // res = tfs_readByte(fd1, &rByte);
-    // // printf("\nRead Byte: %c\n", rByte);
+    char rByte;
+    // res = tfs_readByte(fd1, &rByte);
+    // printf("\nRead Byte: %c\n", rByte);
 
-    // printf("More Read Bytes: \n");
-    // // go until readByte fails
-    // int i = 0;
-    // while (tfs_readByte(fd2, &rByte) >= 0) {
-    //     printf("%c", rByte);
-    //     if ((i + 1) % 16 == 0) {
-    //         printf("\n");
-    //     }
-    //     i++;
-    // }
+    printf("More Read Bytes: \n");
+    // go until readByte fails
+    int i = 0;
+    while (tfs_readByte(fd2, &rByte) >= 0) {
+        printf("%c", rByte);
+        if ((i + 1) % 16 == 0) {
+            printf("\n");
+        }
+        i++;
+    }
 
     /************** Testing Disk #2 Mount  **************/
 
@@ -145,9 +146,9 @@ int main() {
     free(fileCont1);
     free(fileCont2);
     free(fileCont3);
-    free(fileCont4);
-    free(fileCont5);
-    free(fileCont6);
+    // free(fileCont4);
+    // free(fileCont5);
+    // free(fileCont6);
 
     // test getStartBlock
     // char testStartBlock[] = "SICCICCCCCCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
