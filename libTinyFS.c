@@ -380,15 +380,6 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
                 wrIdx += 1;
             }
 
-            printf("Just wrote back inode\n");
-            for (int i = 0; i < sBlock.numBlocks; i++) {
-                printf("%c", sBlock.dMap[i]);
-                if ((i + 1) % 8 == 0) {
-                    printf("\n");
-                }
-            }
-            printf("\n");
-
             // update disk with restored dMap in super block
             if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
                 printf(
@@ -397,10 +388,10 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
                 return WRITE_BLOCK_ERR;
             }
         }
-        printf("> Error: No space to write to disk\n");
+        printf("> Error: No space to write to disk. Existed with status: %d\n",
+               NO_SPACE_ERR);
         return NO_SPACE_ERR;
     }
-    printf("] Writing inode to block %d\n", ibIndex);  // debug
 
     /* Get metadata from super block after deletion */
     if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
@@ -460,15 +451,6 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         fcbIndex++;
         offset += sizeof(fcBlock.context);
     }
-
-    printf("Just wrote inode\n");
-    for (int i = 0; i < sBlock.numBlocks; i++) {
-        printf("%c", sBlock.dMap[i]);
-        if ((i + 1) % 8 == 0) {
-            printf("\n");
-        }
-    }
-    printf("\n");
 
     /* Update super block w/inode */
     if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
@@ -665,7 +647,7 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
 }
 
 /*
- * seek function
+ * Moves fp to desired offset
  */
 int tfs_seek(fileDescriptor fd, int offset) {
     int tmp;
@@ -752,6 +734,46 @@ int tfs_seek(fileDescriptor fd, int offset) {
     return TFS_SEEK_FILE_SUCCESS;
 }
 
+/*
+ * Displays map of disk blocks labeled by S,I,C and F which stands
+ * for super block, inode, file context, and free blocks
+ */
+int tfs_displayFragments() {
+    int tmp;
+    int diskFd;
+    SuperBlock sBlock;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Existed with status: "
+                "%d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    printf("] Disk Overview: \n");
+    for (int i = 0; i < sBlock.numBlocks; i++) {
+        printf("%c", sBlock.dMap[i]);
+        if ((i + 1) % 8 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+
+    return TFS_DISPLAY_MAP_SUCCESS;
+}
 /*********************** Helper Functions ***********************/
 
 /*
@@ -865,15 +887,6 @@ int removeInAndFcb(int diskFd, char *filename) {
         }
     } else {
         return -1;
-    }
-
-    // debug
-    printf("Just deleted: \n");
-    for (int i = 0; i < sBlock.numBlocks; i++) {
-        printf("%c", sBlock.dMap[i]);
-        if ((i + 1) % 8 == 0) {
-            printf("\n");
-        }
     }
 
     /* Update super block w/ new free blocks */
