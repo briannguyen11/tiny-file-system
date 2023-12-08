@@ -58,7 +58,9 @@ int tfs_deleteFile(fileDescriptor fd);
 int tfs_readByte(fileDescriptor fd, char *buffer);
 int tfs_seek(fileDescriptor FD, int offset);
 
+/* Additional Functionality */
 int tfs_rename(fileDescriptor fd, char* newName);
+int tfs_readdir();
 
 /* Helper Functions */
 int setupFS(int diskFd, int numBlocks);

@@ -837,6 +837,9 @@ int tfs_rename(fileDescriptor fd, char* newName) {
 /*
  * Prints filename of every file in the directory (disk)
  */
+int tfs_readdir() {
+    
+}
 
 /*********************** Helper Functions ***********************/
 
