@@ -20,6 +20,9 @@ int main() {
     int diskFd1;
     int diskFd2;
 
+    printf("HELLO\n");
+    printf("%lu, size of time_t\n", sizeof(time_t));
+
     // expected to fail
     res = tfs_mount(DEFAULT_DISK_NAME);
 

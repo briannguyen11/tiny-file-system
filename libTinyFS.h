@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "libDisk.h"
 #include "tinyFS.h"
@@ -32,7 +33,10 @@ typedef struct InodeBlock {
     uint16_t fSize;
     uint8_t fcbLen;
     uint8_t posInDsk;
-    char data[BLOCKSIZE - 17];
+    char createTime;
+    char modTime;
+    char accessTime;
+    char data[BLOCKSIZE - 14];
 } InodeBlock;
 
 typedef struct FileContextBlock {
@@ -56,12 +60,13 @@ int tfs_closeFile(fileDescriptor fd);
 int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
 int tfs_deleteFile(fileDescriptor fd);
 int tfs_readByte(fileDescriptor fd, char *buffer);
-int tfs_seek(fileDescriptor FD, int offset);
+int tfs_seek(fileDescriptor fd, int offset);
 
 /* Additional Functionality */
 int tfs_rename(fileDescriptor fd, char* newName);
 int tfs_readdir();
 int tfs_displayFragments();
+int tfs_readFileInfo(fileDescriptor fd);
 
 /* Helper Functions */
 int setupFS(int diskFd, int numBlocks);
