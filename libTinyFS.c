@@ -236,7 +236,7 @@ int tfs_closeFile(fileDescriptor fd) {
         return CLOSE_FILE_ERR;
     }
 
-    printf("] Successfully closed file '%s' with status: %d\n", rmvFile,
+    printf("] Closed file '%s' with status: %d\n", rmvFile,
            TFS_CLOSE_FILE_SUCCESS);
     return TFS_CLOSE_FILE_SUCCESS;
 }
@@ -469,7 +469,7 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     }
 
     // log success
-    printf("] Sucessfully wrote to '%s' with status: %d\n", filename,
+    printf("] Wrote to '%s' with status: %d\n", filename,
            TFS_WRITE_FILE_SUCCESS);
 
     return TFS_WRITE_FILE_SUCCESS;
@@ -528,7 +528,7 @@ int tfs_deleteFile(fileDescriptor fd) {
                DELETE_FILE_ERR);
     }
     // log success
-    printf("] Sucessfully deleted '%s' with status: %d\n", filename,
+    printf("] Deleted '%s' with status: %d\n", filename,
            TFS_DELETE_FILE_SUCCESS);
     return TFS_DELETE_FILE_SUCCESS;
 }
@@ -735,8 +735,7 @@ int tfs_seek(fileDescriptor fd, int offset) {
             return WRITE_BLOCK_ERR;
         }
     }
-    printf("] Sucessfully seeked '%s' with status: %d\n", filename,
-           TFS_SEEK_FILE_SUCCESS);
+    printf("] Seeked '%s' with status: %d\n", filename, TFS_SEEK_FILE_SUCCESS);
     return TFS_SEEK_FILE_SUCCESS;
 }
 
@@ -815,7 +814,7 @@ int tfs_rename(fileDescriptor fd, char *newName) {
         }
     }
 
-    printf("] Successfully renamed '%s' to '%s' with status: %d\n", oldFilename,
+    printf("] Renamed '%s' to '%s' with status: %d\n", oldFilename,
            tmpIn.filename, TFS_RENAME_FILE_SUCCESS);
     return TFS_RENAME_FILE_SUCCESS;
 }
@@ -952,7 +951,8 @@ int tfs_defrag() {
         return WRITE_BLOCK_ERR;
     }
 
-    return 0;
+    printf("] Resolved fragmentation with status: %d\n", TFS_DEFRAG_SUCCESS);
+    return TFS_DEFRAG_SUCCESS;
 }
 
 /*********************** Helper Functions ***********************/
