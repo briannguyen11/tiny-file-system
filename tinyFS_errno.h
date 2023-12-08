@@ -29,5 +29,6 @@
 #define NO_SPACE_ERR -410
 #define READ_BYTE_ERR -411
 #define INVALID_SEEK_ERR -412
+#define READ_ONLY_ERR -413
 
 #endif /* TINYFSERRNO_H*/

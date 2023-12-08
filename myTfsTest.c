@@ -73,12 +73,14 @@ int main() {
     }
 
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
-    res = tfs_displayFragments();
+    res = tfs_makeRO("file1");
+    // res = tfs_displayFragments();
     res = tfs_writeFile(fd2, fileCont2, fileSize2);
-    res = tfs_displayFragments();
+    // res = tfs_displayFragments();
     res = tfs_writeFile(fd1, fileCont3, fileSize3);
-    res = tfs_displayFragments();
-    res = tfs_deleteFile(fd2);
+    // res = tfs_displayFragments();
+    res = tfs_makeRW("file1");
+    res = tfs_deleteFile(fd1);
     res = tfs_displayFragments();
 
     /** Testing read and seek operations **/
@@ -110,15 +112,15 @@ int main() {
     // int fd5 = tfs_openFile("file5");
     // int fd6 = tfs_openFile("file6");
 
-    // // closing files
-    // // res = tfs_closeFile(fd1);
-    // // res = tfs_closeFile(fd2);
-    // // res = tfs_closeFile(999);
+    // // // closing files
+    // // // res = tfs_closeFile(fd1);
+    // // // res = tfs_closeFile(fd2);
+    // // // res = tfs_closeFile(999);
 
-    // // writiing to a file
+    // // // writiing to a file
     // char *fileCont4, *fileCont5, *fileCont6;
     // int fileSize4 = 300;   // 2 + inode
-    // int fileSize5 = 1200;  // 5 + inode
+    // int fileSize5 = 1000;  // 4 + inode
     // int fileSize6 = 700;   // 3 + inode
     // char filePhrase4[] = "fileFour";
     // char filePhrase5[] = "fileFive";
@@ -143,16 +145,17 @@ int main() {
     // }
 
     // res = tfs_writeFile(fd4, fileCont4, fileSize4);
+    // res = tfs_displayFragments();
     // res = tfs_writeFile(fd5, fileCont5, fileSize5);
-    // res = tfs_writeFile(fd6, fileCont6, fileSize6);
+    // res = tfs_displayFragments();
+    // res = tfs_writeFile(fd4, fileCont6, fileSize6);
+    // res = tfs_displayFragments();
 
     /************** Clean Up **************/
     free(fileCont1);
     free(fileCont2);
     free(fileCont3);
-    // free(fileCont4);
-    // free(fileCont5);
-    // free(fileCont6);
+
     // free(fileCont4);
     // free(fileCont5);
     // free(fileCont6);
