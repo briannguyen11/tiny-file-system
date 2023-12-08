@@ -817,7 +817,51 @@ int tfs_rename(fileDescriptor fd, char *newName) {
  * Prints filename of every file in the directory (disk)
  */
 int tfs_readdir() {
-    
+    int tmp;
+    int diskFd;
+    int filesPresent = 0;
+    SuperBlock sBlock;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Exited with status: %d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Find inode */
+    InodeBlock tmpIn;
+    for (int i = 0; i < sBlock.numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            filesPresent = 1;
+            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
+                printf(
+                    "> Error: Failed to read block. Exited with status: %d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            printf("%s\n", tmpIn.filename);
+        }
+    }
+    if (filesPresent == 0) {
+        printf("No filenames to print\n");
+    }
+
+    printf("] Successfully printed all files (if any) in directory with status: %d\n",
+             TFS_READDIR_SUCCESS);
+    return TFS_READDIR_SUCCESS;
 }
 
 /*

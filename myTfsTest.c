@@ -94,6 +94,7 @@ int main() {
     }
 
     res = tfs_displayFragments();
+    res = tfs_readdir();
 
     /************** Testing Disk #2 Mount  **************/
 
