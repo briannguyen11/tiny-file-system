@@ -79,16 +79,13 @@ int main() {
 
     /** Testing read and seek operations **/
     res = tfs_rename(fd2, "newName");
-    res = tfs_seek(fd2, 277);
+    res = tfs_seek(fd2, 693);
 
     char rByte;
-    // res = tfs_readByte(fd1, &rByte);
-    // printf("\nRead Byte: %c\n", rByte);
-
     printf("More Read Bytes: \n");
     // go until readByte fails
     int i = 0;
-    while (tfs_readByte(fd2, &rByte) >= 0) {
+    while (tfs_readByte(fd1, &rByte) >= 0) {
         printf("%c", rByte);
         if ((i + 1) % 16 == 0) {
             printf("\n");
@@ -96,56 +93,61 @@ int main() {
         i++;
     }
 
+    res = tfs_displayFragments();
+
     /************** Testing Disk #2 Mount  **************/
 
-    res = tfs_mount("tinyFSDiskRand");
+    // res = tfs_mount("tinyFSDiskRand");
 
-    /** Testing file operations **/
-    // creating files
-    int fd4 = tfs_openFile("file4");
-    int fd5 = tfs_openFile("file5");
-    int fd6 = tfs_openFile("file6");
+    // /** Testing file operations **/
+    // // creating files
+    // int fd4 = tfs_openFile("file4");
+    // int fd5 = tfs_openFile("file5");
+    // int fd6 = tfs_openFile("file6");
 
-    // closing files
-    // res = tfs_closeFile(fd1);
-    // res = tfs_closeFile(fd2);
-    // res = tfs_closeFile(999);
+    // // closing files
+    // // res = tfs_closeFile(fd1);
+    // // res = tfs_closeFile(fd2);
+    // // res = tfs_closeFile(999);
 
-    // writiing to a file
-    char *fileCont4, *fileCont5, *fileCont6;
-    int fileSize4 = 300;   // 2 + inode
-    int fileSize5 = 1200;  // 5 + inode
-    int fileSize6 = 700;   // 3 + inode
-    char filePhrase4[] = "fileFour";
-    char filePhrase5[] = "fileFive";
-    char filePhrase6[] = "fileSix";
+    // // writiing to a file
+    // char *fileCont4, *fileCont5, *fileCont6;
+    // int fileSize4 = 300;   // 2 + inode
+    // int fileSize5 = 1200;  // 5 + inode
+    // int fileSize6 = 700;   // 3 + inode
+    // char filePhrase4[] = "fileFour";
+    // char filePhrase5[] = "fileFive";
+    // char filePhrase6[] = "fileSix";
 
-    fileCont4 = (char *)malloc(fileSize4 * sizeof(char));
-    if (fillBufferWithPhrase(filePhrase4, fileCont4, fileSize4) < 0) {
-        perror("failed");
-        return -1;
-    }
+    // fileCont4 = (char *)malloc(fileSize4 * sizeof(char));
+    // if (fillBufferWithPhrase(filePhrase4, fileCont4, fileSize4) < 0) {
+    //     perror("failed");
+    //     return -1;
+    // }
 
-    fileCont5 = (char *)malloc(fileSize5 * sizeof(char));
-    if (fillBufferWithPhrase(filePhrase5, fileCont5, fileSize5) < 0) {
-        perror("failed");
-        return -1;
-    }
+    // fileCont5 = (char *)malloc(fileSize5 * sizeof(char));
+    // if (fillBufferWithPhrase(filePhrase5, fileCont5, fileSize5) < 0) {
+    //     perror("failed");
+    //     return -1;
+    // }
 
-    fileCont6 = (char *)malloc(fileSize6 * sizeof(char));
-    if (fillBufferWithPhrase(filePhrase6, fileCont6, fileSize6) < 0) {
-        perror("failed");
-        return -1;
-    }
+    // fileCont6 = (char *)malloc(fileSize6 * sizeof(char));
+    // if (fillBufferWithPhrase(filePhrase6, fileCont6, fileSize6) < 0) {
+    //     perror("failed");
+    //     return -1;
+    // }
 
-    res = tfs_writeFile(fd4, fileCont4, fileSize4);
-    res = tfs_writeFile(fd5, fileCont5, fileSize5);
-    res = tfs_writeFile(fd6, fileCont6, fileSize6);
+    // res = tfs_writeFile(fd4, fileCont4, fileSize4);
+    // res = tfs_writeFile(fd5, fileCont5, fileSize5);
+    // res = tfs_writeFile(fd6, fileCont6, fileSize6);
 
     /************** Clean Up **************/
     free(fileCont1);
     free(fileCont2);
     free(fileCont3);
+    // free(fileCont4);
+    // free(fileCont5);
+    // free(fileCont6);
     // free(fileCont4);
     // free(fileCont5);
     // free(fileCont6);
