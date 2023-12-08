@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "TinyFS_errno.h"
 #include "libDisk.h"
 #include "tinyFS.h"
-#include "tinyFS_errno.h"
 
 typedef struct FileEntry {
     fileDescriptor fd;
@@ -59,7 +59,7 @@ int tfs_readByte(fileDescriptor fd, char *buffer);
 int tfs_seek(fileDescriptor FD, int offset);
 int tfs_displayFragments();
 
-int tfs_rename(fileDescriptor fd, char* newName);
+int tfs_rename(fileDescriptor fd, char *newName);
 
 /* Helper Functions */
 int setupFS(int diskFd, int numBlocks);
