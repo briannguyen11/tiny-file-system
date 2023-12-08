@@ -734,6 +734,89 @@ int tfs_seek(fileDescriptor fd, int offset) {
     return TFS_SEEK_FILE_SUCCESS;
 }
 
+/******************* Additional Functionality *******************/
+
+/*
+ * Renames an open file
+ */
+int tfs_rename(fileDescriptor fd, char *newName) {
+    int tmp;
+    int diskFd;
+    char oldFilename[9];
+    FileEntry *curr = headOFT;
+    SuperBlock sBlock;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Existed with status: %d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Confirm fd is in OFT and get associated filename */
+    int foundFd = -1;
+    while (curr != NULL) {
+        if (curr->fd == fd) {
+            foundFd = 0;
+            strcpy(
+                oldFilename,
+                curr->filename);  // copy old filename to use for inode search
+            strcpy(curr->filename, newName);  // updates filename in OFT
+        }
+        curr = curr->next;
+    }
+    if (foundFd < 0) {
+        printf("> Error: File is not open. Existed with status: %d\n",
+               WRITE_FILE_ERR);
+        return WRITE_FILE_ERR;
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Find inode */
+    InodeBlock tmpIn;
+    for (int i = 0; i < sBlock.numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
+                printf(
+                    "> Error: Failed to read block. Exited with status: %d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if (strcmp(tmpIn.filename, oldFilename) == 0) {
+                strcpy(tmpIn.filename, newName);
+                // Update filename in inode block in disk
+                if ((tmp = writeBlock(diskFd, tmpIn.posInDsk, &tmpIn)) < 0) {
+                    printf(
+                        "> Error: Failed to write block. Exited with status: "
+                        "%d\n",
+                        WRITE_BLOCK_ERR);
+                    return WRITE_BLOCK_ERR;
+                }
+                break;
+            }
+        }
+    }
+
+    printf("] Successfully renamed '%s' to '%s' with status: %d\n", oldFilename,
+           tmpIn.filename, TFS_RENAME_FILE_SUCCESS);
+    return TFS_RENAME_FILE_SUCCESS;
+}
+
+/*
+ * Prints filename of every file in the directory (disk)
+ */
+
 /*
  * Displays map of disk blocks labeled by S,I,C and F which stands
  * for super block, inode, file context, and free blocks

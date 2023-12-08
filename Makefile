@@ -40,6 +40,6 @@ dump2:
 	hexdump -C -v tinyFSDiskRand
 
 clean:
-	rm tinyFSDisk tinyFSDiskRand file1 file2 file3
+	rm tinyFSDisk tinyFSDiskRand file1 file2 file3 file4 file5 file6
 
 

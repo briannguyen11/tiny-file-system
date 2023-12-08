@@ -78,7 +78,8 @@ int main() {
     // res = tfs_deleteFile(fd2);
 
     /** Testing read and seek operations **/
-    res = tfs_seek(fd1, 693);
+    res = tfs_rename(fd2, "newName");
+    res = tfs_seek(fd2, 693);
 
     char rByte;
     printf("More Read Bytes: \n");
@@ -144,6 +145,9 @@ int main() {
     free(fileCont1);
     free(fileCont2);
     free(fileCont3);
+    // free(fileCont4);
+    // free(fileCont5);
+    // free(fileCont6);
     // free(fileCont4);
     // free(fileCont5);
     // free(fileCont6);
