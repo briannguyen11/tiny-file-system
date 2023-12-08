@@ -5,6 +5,6 @@
 #define BLOCKDATA 254
 #define DEFAULT_DISK_SIZE 10240
 #define DEFAULT_DISK_NAME "tinyFSDisk"
-typedef int fileDescriptor
+typedef int fileDescriptor;
 
 #endif /* TINYFS_H*/

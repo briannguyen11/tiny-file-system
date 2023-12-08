@@ -1,6 +1,6 @@
 #include "libDisk.h"
 
-/**
+/*
  * Description: Create a new disk with inital allocated
  *              space if disk does not already exist. If disk
  *              exist, then just open.
@@ -22,7 +22,7 @@ int openDisk(char *filename, int nBytes) {
     return fd;
 }
 
-/**
+/*
  * Description: Close disk file descriptor
  * Params: Disk (file descriptor)
  * Return: 0 for sucess or -1 indicating error
@@ -35,7 +35,7 @@ int closeDisk(int disk) {
     }
 }
 
-/**
+/*
  * Description: Read from disk into local buf.
  *              Block to read is determined from bNum offset.
  * Params: Disk, bNum (block number), block (pointer to buf)
@@ -64,7 +64,7 @@ int readBlock(int disk, int bNum, void *block) {
     return res;
 }
 
-/**
+/*
  * Description: Write from local buf into disk.
  *              Block to write to is determined from
  *              bNum offset.

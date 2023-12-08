@@ -42,4 +42,11 @@ dump2:
 clean:
 	rm tinyFSDisk tinyFSDiskRand file1 file2 file3 file4 file5 file6
 
+demo1:
+	$(CC) $(CFLAGS) libDisk.c libTinyFS.c tfsTest.c -o  demo1 -lm
+
+new:
+	make test
+	make run
+
 

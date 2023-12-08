@@ -8,9 +8,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "TinyFS_errno.h"
 #include "libDisk.h"
 #include "tinyFS.h"
-#include "tinyFS_errno.h"
 
 typedef struct FileEntry {
     fileDescriptor fd;
@@ -33,10 +33,10 @@ typedef struct InodeBlock {
     uint16_t fSize;
     uint8_t fcbLen;
     uint8_t posInDsk;
-    char createTime;
-    char modTime;
-    char accessTime;
-    char data[BLOCKSIZE - 14];
+    uint8_t createTime;
+    uint8_t modTime;
+    uint8_t accessTime;
+    char data[BLOCKSIZE - 20];
 } InodeBlock;
 
 typedef struct FileContextBlock {
@@ -63,7 +63,8 @@ int tfs_readByte(fileDescriptor fd, char *buffer);
 int tfs_seek(fileDescriptor fd, int offset);
 
 /* Additional Functionality */
-int tfs_rename(fileDescriptor fd, char* newName);
+int tfs_defrag();
+int tfs_rename(fileDescriptor fd, char *newName);
 int tfs_readdir();
 int tfs_displayFragments();
 int tfs_readFileInfo(fileDescriptor fd);
