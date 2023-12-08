@@ -73,26 +73,31 @@ int main() {
     }
 
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
+    res = tfs_displayFragments();
     res = tfs_writeFile(fd2, fileCont2, fileSize2);
+    res = tfs_displayFragments();
     res = tfs_writeFile(fd1, fileCont3, fileSize3);
-    // res = tfs_deleteFile(fd2);
+    res = tfs_displayFragments();
+    res = tfs_deleteFile(fd2);
+    res = tfs_displayFragments();
 
     /** Testing read and seek operations **/
-    res = tfs_rename(fd2, "newName");
-    res = tfs_seek(fd2, 693);
+    // res = tfs_rename(fd2, "newName");
+    // res = tfs_seek(fd2, 693);
 
-    char rByte;
-    printf("More Read Bytes: \n");
-    // go until readByte fails
-    int i = 0;
-    while (tfs_readByte(fd1, &rByte) >= 0) {
-        printf("%c", rByte);
-        if ((i + 1) % 16 == 0) {
-            printf("\n");
-        }
-        i++;
-    }
+    // char rByte;
+    // printf("More Read Bytes: \n");
+    // // go until readByte fails
+    // int i = 0;
+    // while (tfs_readByte(fd1, &rByte) >= 0) {
+    //     printf("%c", rByte);
+    //     if ((i + 1) % 16 == 0) {
+    //         printf("\n");
+    //     }
+    //     i++;
+    // }
 
+    res = tfs_defrag();
     res = tfs_displayFragments();
 
     /************** Testing Disk #2 Mount  **************/

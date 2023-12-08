@@ -332,7 +332,11 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         }
 
         /* Remove inode and associate fcbs */
-        tmp = removeInAndFcb(diskFd, filename);
+        if ((tmp = removeInAndFcb(diskFd, filename)) < 0) {
+            printf("> Error: File in writeFile(). Existed with status: %d\n",
+                   WRITE_FILE_ERR);
+            return WRITE_FILE_ERR;
+        };
     }
 
     /* Get start update index of where to write in super block after deletion */
@@ -753,9 +757,8 @@ int tfs_rename(fileDescriptor fd, char *newName) {
     } else {
         // open mounted disk
         if ((diskFd = openDisk(mDisk, 0)) < 0) {
-            printf(
-                "> Error: Failed to open disk '%s'. Existed with status: %d\n",
-                mDisk, OPEN_DISK_ERR);
+            printf("> Error: Failed in rename(). Existed with status: %d\n",
+                   OPEN_DISK_ERR);
             return OPEN_DISK_ERR;
         }
     }
@@ -773,14 +776,14 @@ int tfs_rename(fileDescriptor fd, char *newName) {
         curr = curr->next;
     }
     if (foundFd < 0) {
-        printf("> Error: File is not open. Existed with status: %d\n",
+        printf("> Error: Failed in rename(). Existed with status: %d\n",
                WRITE_FILE_ERR);
         return WRITE_FILE_ERR;
     }
 
     /* Get metadata from super block */
     if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to read block. Existed with status: %d\n ",
+        printf("> Error: Failed in rename(). Existed with status: %d\n ",
                READ_BLOCK_ERR);
         return READ_BLOCK_ERR;
     }
@@ -791,7 +794,8 @@ int tfs_rename(fileDescriptor fd, char *newName) {
         if (sBlock.dMap[i] == 'I') {
             if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
                 printf(
-                    "> Error: Failed to read block. Exited with status: %d\n",
+                    "> Error: Failed in rename(). Existed with status: "
+                    "%d\n",
                     READ_BLOCK_ERR);
                 return READ_BLOCK_ERR;
             }
@@ -800,7 +804,8 @@ int tfs_rename(fileDescriptor fd, char *newName) {
                 // Update filename in inode block in disk
                 if ((tmp = writeBlock(diskFd, tmpIn.posInDsk, &tmpIn)) < 0) {
                     printf(
-                        "> Error: Failed to write block. Exited with status: "
+                        "> Error: Failed in rename(). Existed with "
+                        "status: "
                         "%d\n",
                         WRITE_BLOCK_ERR);
                     return WRITE_BLOCK_ERR;
@@ -834,17 +839,20 @@ int tfs_displayFragments() {
         // open mounted disk
         if ((diskFd = openDisk(mDisk, 0)) < 0) {
             printf(
-                "> Error: Failed to open disk '%s'. Existed with status: "
+                "> Error: Failed in displayFragments(). Existed with "
+                "status: "
                 "%d\n",
-                mDisk, OPEN_DISK_ERR);
+                OPEN_DISK_ERR);
             return OPEN_DISK_ERR;
         }
     }
 
     /* Get metadata from super block */
     if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to read block. Existed with status: %d\n ",
-               READ_BLOCK_ERR);
+        printf(
+            "> Error: Failed in displayFragments(). Existed with "
+            "status: %d\n ",
+            READ_BLOCK_ERR);
         return READ_BLOCK_ERR;
     }
 
@@ -859,6 +867,94 @@ int tfs_displayFragments() {
 
     return TFS_DISPLAY_MAP_SUCCESS;
 }
+
+/*
+ * Shifts all blocks to the left to reduce external
+ * fragmentation, leaving free blocks at the end
+ */
+int tfs_defrag() {
+    int tmp;
+    int diskFd;
+    SuperBlock sBlock;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed in defrag(). Existed with status: "
+                "%d\n",
+                OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed in defrag(). Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Iterate over disk map -> shift taken blocks to where free blocks are */
+    char buf[BLOCKSIZE];
+    int wrIdx = 0;
+
+    for (int rdIdx = 0; rdIdx < sBlock.numBlocks; rdIdx++) {
+        // if the current element is not 'F', shift it to the write index
+        if (sBlock.dMap[rdIdx] != 'F') {
+            // update disk map
+            sBlock.dMap[wrIdx] = sBlock.dMap[rdIdx];
+
+            // update disk by moving blocks
+            if ((tmp = readBlock(diskFd, rdIdx, &buf)) < 0) {
+                printf("> Error: File in defrag(). Existed with status: %d\n",
+                       READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if ((tmp = writeBlock(diskFd, wrIdx, &buf)) < 0) {
+                printf(
+                    "> Error: File in defrag(). Existed with status: "
+                    "%d\n",
+                    WRITE_BLOCK_ERR);
+                return WRITE_BLOCK_ERR;
+            }
+
+            wrIdx++;
+        }
+    }
+
+    // fill the remaining slots with free blocks
+    while (wrIdx < sBlock.numBlocks) {
+        // update disk map
+        sBlock.dMap[wrIdx] = 'F';
+
+        // update disk by wiriting free blocks
+        FreeBlock fBlock;
+        fBlock.type = 4;
+        fBlock.mNum = 0x44;
+        memset(fBlock.data, 0, sizeof(fBlock.data));
+
+        if (writeBlock(diskFd, wrIdx, &fBlock) < 0) {
+            return WRITE_BLOCK_ERR;
+        }
+
+        wrIdx++;
+    }
+
+    if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
+        printf(
+            "> Error: Failed in defrag(). Existed with "
+            "status: "
+            "%d\n",
+            WRITE_BLOCK_ERR);
+        return WRITE_BLOCK_ERR;
+    }
+
+    return 0;
+}
+
 /*********************** Helper Functions ***********************/
 
 /*
@@ -885,8 +981,6 @@ int setupFS(int diskFd, int numBlocks) {
 
     // put super block into disk
     if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to write block. Exited with status: %d\n",
-               WRITE_BLOCK_ERR);
         return WRITE_BLOCK_ERR;
     }
 
@@ -900,10 +994,6 @@ int setupFS(int diskFd, int numBlocks) {
     // put free blocks into disk
     for (int i = 1; i < numBlocks; i++) {
         if ((tmp = writeBlock(diskFd, i, &fBlock)) < 0) {
-            printf(
-                "> Error: Failed to write block. Exited with status: "
-                "%d\n",
-                WRITE_BLOCK_ERR);
             return WRITE_BLOCK_ERR;
         }
     }
@@ -924,8 +1014,6 @@ int removeInAndFcb(int diskFd, char *filename) {
 
     /* Get metadata from super block */
     if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to read block. Existed with status: %d\n ",
-               READ_BLOCK_ERR);
         return READ_BLOCK_ERR;
     }
 
@@ -933,10 +1021,6 @@ int removeInAndFcb(int diskFd, char *filename) {
     for (int i = 0; i < sBlock.numBlocks; i++) {
         if (sBlock.dMap[i] == 'I') {
             if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
-                printf(
-                    "> Error: Failed to read block. Exited with "
-                    "status: %d\n",
-                    READ_BLOCK_ERR);
                 return READ_BLOCK_ERR;
             }
             if (strcmp(tmpIn.filename, filename) == 0) {
@@ -957,10 +1041,6 @@ int removeInAndFcb(int diskFd, char *filename) {
 
         for (int i = 0; i < rmvBlocks; i++) {
             if (writeBlock(diskFd, rmvIbIndex, &fBlock) < 0) {
-                printf(
-                    "> Error: Failed to write block. Exited with "
-                    "status: %d\n",
-                    WRITE_BLOCK_ERR);
                 return WRITE_BLOCK_ERR;
             }
 
@@ -976,8 +1056,6 @@ int removeInAndFcb(int diskFd, char *filename) {
 
     /* Update super block w/ new free blocks */
     if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
-        printf("> Error: Failed to write block. Exited with status: %d\n",
-               WRITE_BLOCK_ERR);
         return WRITE_BLOCK_ERR;
     }
 
