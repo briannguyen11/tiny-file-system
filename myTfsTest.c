@@ -73,6 +73,7 @@ int main() {
     }
 
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
+    res = tfs_readFileInfo(fd1);
     res = tfs_makeRO("file1");
     // res = tfs_displayFragments();
     res = tfs_writeFile(fd2, fileCont2, fileSize2);
@@ -85,6 +86,7 @@ int main() {
 
     /** Testing read, write, and seek operations **/
     res = tfs_rename(fd2, "newName");
+    res = tfs_readdir();
 
     // reading initial bytes
     char rByte1;
@@ -98,10 +100,14 @@ int main() {
         i++;
     }
 
+    sleep(3);
+
     // writing new bytes
     res = tfs_seek(fd1, 149);
     while (tfs_writeByte(fd1, 'x') >= 0) {
     }
+
+    sleep(3);
 
     // reading after write
     res = tfs_seek(fd1, 0);
@@ -115,6 +121,7 @@ int main() {
         }
         j++;
     }
+    res = tfs_readFileInfo(fd1);
 
     /** Testing defrag **/
     // res = tfs_defrag();

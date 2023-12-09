@@ -960,7 +960,7 @@ int tfs_readdir() {
         return 0;
     }
     while (curr != NULL) {
-        printf("%s\t", curr->filename);
+        printf("          %s          ", curr->filename);
         curr = curr->next;
         if (curr == NULL) {
             printf("\n");
@@ -1240,6 +1240,7 @@ int tfs_writeByte(fileDescriptor fd, uint8_t data) {
     int fcbIndex;
     int foundIn = -1;
     char filename[9];
+    time_t newTime;
     FileEntry *curr = headOFT;
     SuperBlock sBlock;
     InodeBlock iBlock;
@@ -1324,6 +1325,12 @@ int tfs_writeByte(fileDescriptor fd, uint8_t data) {
         if (fp < fSize) {
             tmpBuf[fp] = data;
             fp++;
+
+            // update time
+            time(&newTime);
+            iBlock.modTime = newTime;
+            iBlock.accessTime = newTime;
+
             // update fp in inode block in disk
             iBlock.fp = fp;
             if ((tmp = writeBlock(diskFd, iBlock.posInDsk, &iBlock)) < 0) {
@@ -1357,14 +1364,16 @@ int tfs_writeByte(fileDescriptor fd, uint8_t data) {
             }
         } else {
             printf(
-                "> Stopped writing byte. Exited writeByte() with status: "
+                "> Stopped writing byte '%c'. Exited writeByte() with status: "
                 "%d\n",
-                WRITE_BYTE_ERR);
+                data, WRITE_BYTE_ERR);
             return WRITE_BYTE_ERR;
         }
     } else {
-        printf("> Stopped writing byte. Exited writeByte() with status: %d\n",
-               WRITE_BYTE_ERR);
+        printf(
+            "> Stopped writing byte '%c'. Exited writeByte() with status: "
+            "%d\n",
+            data, WRITE_BYTE_ERR);
         return WRITE_BYTE_ERR;
     }
 
@@ -1418,7 +1427,6 @@ int tfs_readFileInfo(fileDescriptor fd) {
     }
 
     /* Find inode to get size of file */
-    int foundIn = -1;
     InodeBlock tmpIn;
     for (int i = 0; i < sBlock.numBlocks; i++) {
         if (sBlock.dMap[i] == 'I') {
@@ -1430,7 +1438,6 @@ int tfs_readFileInfo(fileDescriptor fd) {
                 return READ_BLOCK_ERR;
             }
             if (strcmp(tmpIn.filename, filename) == 0) {
-                foundIn = 0;
                 struct tm *cTimeInfo = localtime(&tmpIn.createTime);
 
                 printf("File Create Time: %d-%02d-%02d %02d:%02d:%02d\n",
