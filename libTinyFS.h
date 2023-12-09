@@ -16,6 +16,7 @@ typedef struct FileEntry {
     fileDescriptor fd;
     char filename[9];
     struct FileEntry *next;  // LL to be dynamic
+    time_t initTime;
 } FileEntry;
 
 typedef struct SuperBlock {
@@ -33,9 +34,9 @@ typedef struct InodeBlock {
     uint16_t fSize;
     uint8_t fcbLen;
     uint8_t posInDsk;
-    uint8_t createTime;
-    uint8_t modTime;
-    uint8_t accessTime;
+    time_t createTime;
+    time_t modTime;
+    time_t accessTime;
     char data[BLOCKSIZE - 20];
 } InodeBlock;
 

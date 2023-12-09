@@ -73,29 +73,41 @@ int main() {
     }
 
     res = tfs_writeFile(fd1, fileCont1, fileSize1);
-    res = tfs_displayFragments();
-    res = tfs_writeFile(fd2, fileCont2, fileSize2);
-    res = tfs_displayFragments();
+    res = tfs_readFileInfo(fd1);
+    // res = tfs_displayFragments();
+    res = tfs_writeFile(fd1, fileCont2, fileSize2);
+    // res = tfs_displayFragments();
+    res = tfs_readFileInfo(fd1);
+
+    printf("THREE SECOND DELAY\n");
+    sleep(3);
     res = tfs_writeFile(fd1, fileCont3, fileSize3);
-    res = tfs_displayFragments();
-    res = tfs_deleteFile(fd2);
-    res = tfs_displayFragments();
+    res = tfs_readFileInfo(fd1);
+    // res = tfs_displayFragments();
+    // res = tfs_deleteFile(fd1);
+    // res = tfs_deleteFile(fd2);
+    // res = tfs_deleteFile(fd3);
+    // res = tfs_displayFragments();
+
+    sleep(2);
 
     /** Testing read and seek operations **/
     // res = tfs_rename(fd2, "newName");
-    // res = tfs_seek(fd2, 693);
+    res = tfs_seek(fd1, 288);
 
-    // char rByte;
-    // printf("More Read Bytes: \n");
-    // // go until readByte fails
-    // int i = 0;
-    // while (tfs_readByte(fd1, &rByte) >= 0) {
-    //     printf("%c", rByte);
-    //     if ((i + 1) % 16 == 0) {
-    //         printf("\n");
-    //     }
-    //     i++;
-    // }
+    char rByte;
+    printf("More Read Bytes: \n");
+    // go until readByte fails
+    int i = 0;
+    while (tfs_readByte(fd1, &rByte) >= 0) {
+        printf("%c", rByte);
+        if ((i + 1) % 16 == 0) {
+            printf("\n");
+        }
+        i++;
+    }
+
+    res = tfs_readFileInfo(fd1);
 
     res = tfs_defrag();
     res = tfs_displayFragments();
