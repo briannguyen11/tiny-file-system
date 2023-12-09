@@ -701,8 +701,6 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
         }
 
         // Check if fp did not exceed file size -> copy byte at fp to buffer
-        // printf("Size: %d", fSize);
-        // printf("| fp: %d | byte:", fp);
         if (fp < fSize) {
             *buffer = tmpBuf[fp];
             fp++;
@@ -716,13 +714,11 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
                 return WRITE_BLOCK_ERR;
             }
         } else {
-            printf("> Failed to read byte. Exited readByte() with status: %d\n",
-                   READ_BYTE_ERR);
+            printf("\n> Exited readByte() with status: %d\n", READ_BYTE_ERR);
             return READ_BYTE_ERR;
         }
     } else {
-        printf("> Failed to read byte. Exited readByte() with status: %d\n",
-               READ_BYTE_ERR);
+        printf("> Exited readByte() with status: %d\n", READ_BYTE_ERR);
         return READ_BYTE_ERR;
     }
 
@@ -1164,6 +1160,148 @@ int tfs_makeRW(char *name) {
 
     // log status
     printf("] Made '%s' access rights to READ and WRITE\n", name);
+    return 0;
+}
+
+/*
+ * Write byte to file at fp location
+ */
+int tfs_writeByte(fileDescriptor fd, uint8_t data) {
+    int tmp;
+    int diskFd;
+    int fp;
+    int fSize;
+    int fcbIndex;
+    int foundIn = -1;
+    char filename[9];
+    FileEntry *curr = headOFT;
+    SuperBlock sBlock;
+    InodeBlock iBlock;
+    FileContextBlock tmpFCB;
+
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Failed to open disk. Exited writeByte() with status: "
+                "%d\n",
+                OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Confirm fd is in OFT and get assoicate filename */
+    int foundFd = -1;
+    while (curr != NULL) {
+        if (curr->fd == fd) {
+            foundFd = 0;
+            strcpy(filename, curr->filename);  // getting filename
+        }
+        curr = curr->next;
+    }
+    if (foundFd < 0) {
+        printf("> File not in OFT. Exited writeByte() with status: %d\n",
+               READ_BYTE_ERR);
+        return READ_BYTE_ERR;
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Failed to read block. Exited writeByte() with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Get inode to know file size and fp */
+    for (int i = 0; i < sBlock.numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            if ((tmp = readBlock(diskFd, i, &iBlock)) < 0) {
+                printf(
+                    "> Failed to read block. Exited writeByte() with status: "
+                    "%d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if (strcmp(iBlock.filename, filename) == 0) {
+                foundIn = 0;
+                fp = iBlock.fp;
+                fSize = iBlock.fSize;
+                fcbIndex = iBlock.posInDsk + 1;
+                break;
+            }
+        }
+    }
+
+    /* Write byte */
+    if (foundIn == 0) {
+        // copying fcb into temp buffer
+        int offset = 0;
+        int rdIdx = fcbIndex;
+        char tmpBuf[iBlock.fcbLen * (BLOCKSIZE - 2)];  // 254 bytes
+        for (int i = 0; i < iBlock.fcbLen; i++) {
+            if ((tmp = readBlock(diskFd, rdIdx, &tmpFCB)) < 0) {
+                printf(
+                    "> Failed to read block. Exited writeByte() with status: "
+                    "%d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            memcpy(tmpBuf + offset, tmpFCB.context, sizeof(tmpFCB.context));
+            rdIdx++;
+            offset += sizeof(tmpFCB.context);
+        }
+
+        // Check if fp did not exceed file size -> copy byte at fp to buffer
+        if (fp < fSize) {
+            tmpBuf[fp] = data;
+            fp++;
+            // update fp in inode block in disk
+            iBlock.fp = fp;
+            if ((tmp = writeBlock(diskFd, iBlock.posInDsk, &iBlock)) < 0) {
+                printf(
+                    "> Failed to write block. Exited writeByte() with status: "
+                    "%d\n",
+                    WRITE_BLOCK_ERR);
+                return WRITE_BLOCK_ERR;
+            }
+
+            // update file context blocks in disk
+            offset = 0;
+            int wrIdx = fcbIndex;
+            for (int i = 0; i < iBlock.fcbLen; i++) {
+                FileContextBlock fcBlock;
+                fcBlock.type = 3;
+                fcBlock.mNum = 0x44;
+                memcpy(fcBlock.context, tmpBuf + offset,
+                       sizeof(fcBlock.context));
+
+                if ((tmp = writeBlock(diskFd, wrIdx, &fcBlock)) < 0) {
+                    printf(
+                        "> Failed to write block. Exited writeByte() with "
+                        "status: "
+                        "%d\n",
+                        WRITE_BLOCK_ERR);
+                    return WRITE_BLOCK_ERR;
+                }
+                wrIdx++;
+                offset += sizeof(fcBlock.context);
+            }
+        } else {
+            printf(
+                "> Stopped writing byte. Exited writeByte() with status: "
+                "%d\n",
+                WRITE_BYTE_ERR);
+            return WRITE_BYTE_ERR;
+        }
+    } else {
+        printf("> Stopped writing byte. Exited writeByte() with status: %d\n",
+               WRITE_BYTE_ERR);
+        return WRITE_BYTE_ERR;
+    }
+
     return 0;
 }
 /*********************** Helper Functions ***********************/

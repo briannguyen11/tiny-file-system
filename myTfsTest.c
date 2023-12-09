@@ -80,27 +80,45 @@ int main() {
     res = tfs_writeFile(fd1, fileCont3, fileSize3);
     // res = tfs_displayFragments();
     res = tfs_makeRW("file1");
-    res = tfs_deleteFile(fd1);
-    res = tfs_displayFragments();
+    // res = tfs_deleteFile(fd1);
+    // res = tfs_displayFragments();
 
-    /** Testing read and seek operations **/
-    // res = tfs_rename(fd2, "newName");
-    // res = tfs_seek(fd2, 693);
+    /** Testing read, write, and seek operations **/
+    res = tfs_rename(fd2, "newName");
 
-    // char rByte;
-    // printf("More Read Bytes: \n");
-    // // go until readByte fails
-    // int i = 0;
-    // while (tfs_readByte(fd1, &rByte) >= 0) {
-    //     printf("%c", rByte);
-    //     if ((i + 1) % 16 == 0) {
-    //         printf("\n");
-    //     }
-    //     i++;
-    // }
+    // reading initial bytes
+    char rByte1;
+    printf("Read Bytes: \n");
+    int i = 0;
+    while (tfs_readByte(fd1, &rByte1) >= 0) {
+        printf("%c", rByte1);
+        if ((i + 1) % 16 == 0) {
+            printf("\n");
+        }
+        i++;
+    }
 
-    res = tfs_defrag();
-    res = tfs_displayFragments();
+    // writing new bytes
+    res = tfs_seek(fd1, 149);
+    while (tfs_writeByte(fd1, 'x') >= 0) {
+    }
+
+    // reading after write
+    res = tfs_seek(fd1, 0);
+    printf("Read Bytes After: \n");
+    char rByte2;
+    int j = 0;
+    while (tfs_readByte(fd1, &rByte2) >= 0) {
+        printf("%c", rByte2);
+        if ((j + 1) % 16 == 0) {
+            printf("\n");
+        }
+        j++;
+    }
+
+    /** Testing defrag **/
+    // res = tfs_defrag();
+    // res = tfs_displayFragments();
 
     /************** Testing Disk #2 Mount  **************/
 

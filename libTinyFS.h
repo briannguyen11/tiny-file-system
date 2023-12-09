@@ -65,6 +65,7 @@ int tfs_defrag();
 int tfs_rename(fileDescriptor fd, char *newName);
 int tfs_makeRO(char *name);
 int tfs_makeRW(char *name);
+int tfs_writeByte(fileDescriptor fd, uint8_t data);
 
 /* Helper Functions */
 int setupFS(int diskFd, int numBlocks);
