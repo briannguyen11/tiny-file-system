@@ -44,9 +44,8 @@ int tfs_mkfs(char *filename, int nBytes) {
     }
 
     // log success
-    printf("] Created new disk '%s' with status: %d\n", filename,
-           TFS_MKFS_SUCCESS);
-    return TFS_MKFS_SUCCESS;
+    printf("] Created new disk '%s'\n", filename);
+    return 0;
 }
 
 /*
@@ -59,8 +58,7 @@ int tfs_mount(char *diskname) {
     /* Unmount current disk if another disk is mounted */
     if (mDisk != NULL) {
         // log success
-        printf("] Unmounted disk '%s' with status: %d\n", mDisk,
-               TFS_UNMOUNT_SUCCESS);
+        printf("] Unmounted disk '%s'\n", mDisk);
         tfs_unmount();
     }
 
@@ -91,9 +89,8 @@ int tfs_mount(char *diskname) {
     strcpy(mDisk, diskname);
 
     // log success
-    printf("] Mounted to disk '%s' with status:: %d\n", mDisk,
-           TFS_MOUNT_SUCCESS);
-    return TFS_MOUNT_SUCCESS;
+    printf("] Mounted to disk '%s'\n", mDisk);
+    return 0;
 }
 
 /*
@@ -105,7 +102,7 @@ int tfs_unmount() {
         printf("] Nothing to unmount");
     }
     mDisk = NULL;
-    return TFS_UNMOUNT_SUCCESS;
+    return 0;
 }
 
 /*
@@ -114,6 +111,7 @@ int tfs_unmount() {
  */
 fileDescriptor tfs_openFile(char *name) {
     fileDescriptor fd;
+    time_t initTime;
     FileEntry *newFE = malloc(sizeof(FileEntry));  // debug remember to free
     FileEntry *curr1 = headOFT;
     FileEntry *curr2 = headOFT;
@@ -129,8 +127,7 @@ fileDescriptor tfs_openFile(char *name) {
     // if file is found in OFT, it is assumed that it has been opened
     while (curr1 != NULL) {
         if (strcmp(curr1->filename, name) == 0) {
-            printf("] Opened file '%s' with fd: %d and status: %d\n", name,
-                   curr1->fd, TFS_OPEN_FILE_SUCCESS);
+            printf("] Opened file '%s' with fd: %d\n", name, curr1->fd);
             return curr1->fd;
         }
         curr1 = curr1->next;
@@ -158,6 +155,8 @@ fileDescriptor tfs_openFile(char *name) {
     strcpy(newFE->filename, name);
     newFE->filename[8] = '\0';
     newFE->next = NULL;
+    time(&initTime);
+    newFE->initTime = initTime;
 
     // add new file entry to OFT
     if (headOFT == NULL) {
@@ -170,8 +169,7 @@ fileDescriptor tfs_openFile(char *name) {
     }
 
     // log success
-    printf("] Opened file '%s' with fd: %d and status: %d\n", name, fd,
-           TFS_OPEN_FILE_SUCCESS);
+    printf("] Opened file '%s' with fd: %d\n", name, fd);
     return fd;
 }
 
@@ -241,9 +239,8 @@ int tfs_closeFile(fileDescriptor fd) {
         return CLOSE_FILE_ERR;
     }
 
-    printf("] Closed file '%s' with status: %d\n", rmvFile,
-           TFS_CLOSE_FILE_SUCCESS);
-    return TFS_CLOSE_FILE_SUCCESS;
+    printf("] Closed file '%s'\n", rmvFile);
+    return 0;
 }
 
 /*
@@ -257,6 +254,8 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     int fcbLen;
     char filename[9];
     int rdOnlyFlg = -1;
+    time_t initTime;
+    time_t newTime;
     SuperBlock sBlock;
     InodeBlock iBlock;
 
@@ -281,10 +280,12 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     while (curr != NULL) {
         if (curr->fd == fd) {
             foundFd = 0;
-            strcpy(filename, curr->filename);  // getting filename
+            strcpy(filename, curr->filename);  // getting filename and init time
+            initTime = curr->initTime;
         }
         curr = curr->next;
     }
+
     if (foundFd < 0) {
         printf(
             "> File not in OFT. Exited writeFile() with status: "
@@ -440,6 +441,30 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     iBlock.fp = 0;
     iBlock.posInDsk = ibIndex;
     iBlock.rdOnly = -1;
+
+    if (foundIn == -1) {
+        iBlock.createTime = initTime;
+        iBlock.modTime = initTime;
+        iBlock.accessTime = initTime;
+    } else {
+        struct tm *cTimeInfo = localtime(&initTime);
+        printf("\nBefore Time: %d-%02d-%02d %02d:%02d:%02d\n",
+               cTimeInfo->tm_year + 1900, cTimeInfo->tm_mon + 1,
+               cTimeInfo->tm_mday, cTimeInfo->tm_hour, cTimeInfo->tm_min,
+               cTimeInfo->tm_sec);
+
+        iBlock.createTime = initTime;
+        time(&newTime);
+        iBlock.modTime = newTime;
+        iBlock.accessTime = newTime;
+
+        struct tm *bTimeInfo = localtime(&iBlock.createTime);
+        printf("\nBlock Time: %d-%02d-%02d %02d:%02d:%02d\n",
+               bTimeInfo->tm_year + 1900, bTimeInfo->tm_mon + 1,
+               bTimeInfo->tm_mday, bTimeInfo->tm_hour, bTimeInfo->tm_min,
+               bTimeInfo->tm_sec);
+    }
+
     memset(iBlock.data, 0, sizeof(iBlock.data));
 
     /* Update disk map with new inode */
@@ -507,10 +532,9 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
     }
 
     // log success
-    printf("] Wrote to '%s' with status: %d\n", filename,
-           TFS_WRITE_FILE_SUCCESS);
+    printf("] Wrote to '%s'\n", filename);
 
-    return TFS_WRITE_FILE_SUCCESS;
+    return 0;
 }
 
 /*
@@ -605,9 +629,8 @@ int tfs_deleteFile(fileDescriptor fd) {
                DELETE_FILE_ERR);
     }
     // log success
-    printf("] Deleted '%s' with status: %d\n", filename,
-           TFS_DELETE_FILE_SUCCESS);
-    return TFS_DELETE_FILE_SUCCESS;
+    printf("] Deleted '%s'\n", filename);
+    return 0;
 }
 
 /*
@@ -621,6 +644,7 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
     int fcbIndex;
     int foundIn = -1;
     char filename[9];
+    time_t newTime;
     FileEntry *curr = headOFT;
     SuperBlock sBlock;
     InodeBlock iBlock;
@@ -706,6 +730,8 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
             fp++;
             // update fp in inode block in disk
             iBlock.fp = fp;
+            time(&newTime);
+            iBlock.accessTime = newTime;
             if ((tmp = writeBlock(diskFd, iBlock.posInDsk, &iBlock)) < 0) {
                 printf(
                     "> Failed to write block. Exited readByte() with status: "
@@ -722,7 +748,7 @@ int tfs_readByte(fileDescriptor fd, char *buffer) {
         return READ_BYTE_ERR;
     }
 
-    return TFS_READ_BYTE_SUCESS;
+    return 0;
 }
 
 /*
@@ -749,7 +775,7 @@ int tfs_seek(fileDescriptor fd, int offset) {
         }
     }
 
-    /* Confirm fd is in OFT and get assoicate filename */
+    /* Confirm fd is in OFT and get associated filename */
     int foundFd = -1;
     while (curr != NULL) {
         if (curr->fd == fd) {
@@ -808,8 +834,8 @@ int tfs_seek(fileDescriptor fd, int offset) {
             return WRITE_BLOCK_ERR;
         }
     }
-    printf("] Seeked '%s' with status: %d\n", filename, TFS_SEEK_FILE_SUCCESS);
-    return TFS_SEEK_FILE_SUCCESS;
+    printf("] Seeked '%s'\n", filename);
+    return 0;
 }
 
 /******************* Additional Functionality *******************/
@@ -896,14 +922,52 @@ int tfs_rename(fileDescriptor fd, char *newName) {
         }
     }
 
-    printf("] Renamed '%s' to '%s' with status: %d\n", oldFilename,
-           iBlock.filename, TFS_RENAME_FILE_SUCCESS);
-    return TFS_RENAME_FILE_SUCCESS;
+    printf("] Renamed '%s' to '%s'\n", oldFilename, iBlock.filename);
+    return 0;
 }
 
 /*
  * Prints filename of every file in the directory (disk)
  */
+int tfs_readdir() {
+    int tmp;
+    int diskFd;
+    SuperBlock sBlock;
+    FileEntry *curr = headOFT;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed to open disk '%s'. Exited with status: %d\n",
+                mDisk, OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed to read block. Existed with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Get filenames from OFT */
+    if (curr == NULL) {
+        printf("No filenames to print\n");
+        return 0;
+    }
+    while (curr != NULL) {
+        printf("%s\t", curr->filename);
+        curr = curr->next;
+        if (curr == NULL) {
+            printf("\n");
+        }
+    }
+    return 0;
+}
 
 /*
  * Displays map of disk blocks labeled by S,I,C and F which stands
@@ -946,7 +1010,7 @@ int tfs_displayFragments() {
     }
     printf("\n");
 
-    return TFS_DISPLAY_MAP_SUCCESS;
+    return 0;
 }
 
 /*
@@ -1028,13 +1092,15 @@ int tfs_defrag() {
     if ((tmp = writeBlock(diskFd, 0, &sBlock)) < 0) {
         printf(
             "> Failed to write block. Exited defrag() with status: "
+            "> Error: Failed in defrag(). Exited with "
+            "status: "
             "%d\n",
             WRITE_BLOCK_ERR);
         return WRITE_BLOCK_ERR;
     }
 
-    printf("] Resolved fragmentation with status: %d\n", TFS_DEFRAG_SUCCESS);
-    return TFS_DEFRAG_SUCCESS;
+    printf("] Resolved fragmentation\n");
+    return 0;
 }
 
 /*
@@ -1305,6 +1371,92 @@ int tfs_writeByte(fileDescriptor fd, uint8_t data) {
     return 0;
 }
 /*********************** Helper Functions ***********************/
+
+/*
+ * Prints create, modify, and access time for a file
+ */
+int tfs_readFileInfo(fileDescriptor fd) {
+    int tmp;
+    int diskFd;
+    char filename[9];
+    FileEntry *curr = headOFT;
+    SuperBlock sBlock;
+    /* Check if disk is mounted and open it */
+    if (mDisk == NULL) {
+        return NO_DISK_MOUNTED_ERR;
+    } else {
+        // open mounted disk
+        if ((diskFd = openDisk(mDisk, 0)) < 0) {
+            printf(
+                "> Error: Failed in seek(). Exited with status: "
+                "%d\n",
+                OPEN_DISK_ERR);
+            return OPEN_DISK_ERR;
+        }
+    }
+
+    /* Confirm fd is in OFT and get associated filename */
+    int foundFd = -1;
+    while (curr != NULL) {
+        if (curr->fd == fd) {
+            foundFd = 0;
+            strcpy(filename, curr->filename);  // getting filename
+        }
+        curr = curr->next;
+    }
+    if (foundFd < 0) {
+        printf("> Error: Failed in seek(). Exited with status: %d\n",
+               WRITE_FILE_ERR);
+        return WRITE_FILE_ERR;
+    }
+
+    /* Get metadata from super block */
+    if ((tmp = readBlock(diskFd, 0, &sBlock)) < 0) {
+        printf("> Error: Failed in seek(). Exited with status: %d\n ",
+               READ_BLOCK_ERR);
+        return READ_BLOCK_ERR;
+    }
+
+    /* Find inode to get size of file */
+    int foundIn = -1;
+    InodeBlock tmpIn;
+    for (int i = 0; i < sBlock.numBlocks; i++) {
+        if (sBlock.dMap[i] == 'I') {
+            if ((tmp = readBlock(diskFd, i, &tmpIn)) < 0) {
+                printf(
+                    "> Error: Failed in seek(). Exited with status: "
+                    "%d\n",
+                    READ_BLOCK_ERR);
+                return READ_BLOCK_ERR;
+            }
+            if (strcmp(tmpIn.filename, filename) == 0) {
+                foundIn = 0;
+                struct tm *cTimeInfo = localtime(&tmpIn.createTime);
+
+                printf("File Create Time: %d-%02d-%02d %02d:%02d:%02d\n",
+                       cTimeInfo->tm_year + 1900, cTimeInfo->tm_mon + 1,
+                       cTimeInfo->tm_mday, cTimeInfo->tm_hour,
+                       cTimeInfo->tm_min, cTimeInfo->tm_sec);
+
+                struct tm *mTimeInfo = localtime(&tmpIn.modTime);
+
+                printf("File Modif Time:  %d-%02d-%02d %02d:%02d:%02d\n",
+                       mTimeInfo->tm_year + 1900, mTimeInfo->tm_mon + 1,
+                       mTimeInfo->tm_mday, mTimeInfo->tm_hour,
+                       mTimeInfo->tm_min, mTimeInfo->tm_sec);
+
+                struct tm *aTimeInfo = localtime(&tmpIn.accessTime);
+
+                printf("File Access Time: %d-%02d-%02d %02d:%02d:%02d\n",
+                       aTimeInfo->tm_year + 1900, aTimeInfo->tm_mon + 1,
+                       aTimeInfo->tm_mday, aTimeInfo->tm_hour,
+                       aTimeInfo->tm_min, aTimeInfo->tm_sec);
+                break;
+            }
+        }
+    }
+    return 0;
+}
 
 /*
  * Initializes super block and free blocks and writes the blocks

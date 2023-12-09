@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "TinyFS_errno.h"
 #include "libDisk.h"
@@ -15,6 +16,7 @@ typedef struct FileEntry {
     fileDescriptor fd;       // fd of open file
     char filename[9];        // filename only 8 characters
     struct FileEntry *next;  // LL to be dynamic
+    time_t initTime;
 } FileEntry;
 
 typedef struct SuperBlock {
@@ -25,15 +27,18 @@ typedef struct SuperBlock {
 } SuperBlock;
 
 typedef struct InodeBlock {
-    char type;                  // 2
-    char mNum;                  // 0x44
-    char filename[9];           // filename only 8 chars
-    uint16_t fp;                // location in file
-    uint16_t fSize;             // file size
-    uint8_t fcbLen;             // number of file context blocks
-    uint8_t posInDsk;           // location in disk
-    uint8_t rdOnly;             // if 0, read only
-    char data[BLOCKSIZE - 18];  // misc
+    char type;
+    char mNum;
+    char filename[9];
+    uint16_t fp;
+    uint16_t fSize;
+    uint8_t fcbLen;
+    uint8_t posInDsk;
+    uint8_t rdOnly;
+    time_t createTime;
+    time_t modTime;
+    time_t accessTime;
+    char data[BLOCKSIZE - 21];
 } InodeBlock;
 
 typedef struct FileContextBlock {
@@ -57,12 +62,14 @@ int tfs_closeFile(fileDescriptor fd);
 int tfs_writeFile(fileDescriptor fd, char *buffer, int size);
 int tfs_deleteFile(fileDescriptor fd);
 int tfs_readByte(fileDescriptor fd, char *buffer);
-int tfs_seek(fileDescriptor FD, int offset);
+int tfs_seek(fileDescriptor fd, int offset);
 
 /* Additional Functionality */
-int tfs_displayFragments();
 int tfs_defrag();
 int tfs_rename(fileDescriptor fd, char *newName);
+int tfs_readdir();
+int tfs_displayFragments();
+int tfs_readFileInfo(fileDescriptor fd);
 int tfs_makeRO(char *name);
 int tfs_makeRW(char *name);
 int tfs_writeByte(fileDescriptor fd, uint8_t data);

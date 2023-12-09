@@ -45,4 +45,8 @@ clean:
 demo1:
 	$(CC) $(CFLAGS) libDisk.c libTinyFS.c tfsTest.c -o  demo1 -lm
 
+new:
+	make test
+	make run
+
 
