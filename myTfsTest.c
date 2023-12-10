@@ -180,12 +180,9 @@ int main() {
 
     /* Init file 4 */
     fd4 = tfs_openFile("file4");
-    if (tfs_readByte(fd1, &rdBuf) < 0) {
+    if (tfs_readByte(fd4, &rdBuf) < 0) {
         /* If readByte() fails, there was no afile, so we write to it */
         tfs_writeFile(fd4, fileCont4, fileSize4);
-
-        /* Get time stamps */
-        tfs_readFileInfo(fd4);
 
         /* Display fragments */
         tfs_displayFragments();
@@ -198,7 +195,7 @@ int main() {
 
         /* Seek to 1/3 of the file4 ((900/3) - 1) and write */
         tfs_seek(fd4, 299);
-        while (tfs_writeByte(fd1, 'x') >= 0) {
+        while (tfs_writeByte(fd4, 'x') >= 0) {
             printf("%c", rdBuf);
         }
 
@@ -209,6 +206,9 @@ int main() {
         while (tfs_readByte(fd4, &rdBuf) >= 0) {
             printf("%c", rdBuf);
         }
+
+        /* Close file */
+        tfs_closeFile(fd4);
     }
 
     /************** Clean Up **************/

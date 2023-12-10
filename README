@@ -14,6 +14,15 @@
      when a file is deleted, tfs_defrag() is called, and then tfs_displayFragments() is called
      to show that a file has been deleted and then all the remaining files have been shifted
      such that there are no free space blocks between inode and file content blocks.
+   - Directory listing and file renaming:
+     Calling tfs_rename(fileDescriptor FD, char\* newName) changes the name of a file and
+     tfs_readdir() displays all files in the disk. tfs_readdir() is called before and after
+     renaming to show that the file's name has changed.
+   - Read-only and writeByte support:
+     tfs_makeRO(char *name) is used by setting a file to read-only initially and then trying to
+     delete the file, but it will be not be deleted. tfs_makeRW(char *name) is called which then
+     allows the file to be deleted. tfs_writeByte(fileDescriptor FD, unsigned int data) is called
+     on a file to
 
 ○ An explanation of which additional functionality areas you have chosen and how
 you have shown that it works.

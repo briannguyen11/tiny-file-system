@@ -436,22 +436,10 @@ int tfs_writeFile(fileDescriptor fd, char *buffer, int size) {
         iBlock.modTime = initTime;
         iBlock.accessTime = initTime;
     } else {
-        struct tm *cTimeInfo = localtime(&initTime);
-        printf("\nBefore Time: %d-%02d-%02d %02d:%02d:%02d\n",
-               cTimeInfo->tm_year + 1900, cTimeInfo->tm_mon + 1,
-               cTimeInfo->tm_mday, cTimeInfo->tm_hour, cTimeInfo->tm_min,
-               cTimeInfo->tm_sec);
-
         iBlock.createTime = initTime;
         time(&newTime);
         iBlock.modTime = newTime;
         iBlock.accessTime = newTime;
-
-        struct tm *bTimeInfo = localtime(&iBlock.createTime);
-        printf("\nBlock Time: %d-%02d-%02d %02d:%02d:%02d\n",
-               bTimeInfo->tm_year + 1900, bTimeInfo->tm_mon + 1,
-               bTimeInfo->tm_mday, bTimeInfo->tm_hour, bTimeInfo->tm_min,
-               bTimeInfo->tm_sec);
     }
 
     memset(iBlock.data, 0, sizeof(iBlock.data));
