@@ -1,11 +1,14 @@
 #ifndef LIBTINYFS_H
 #define LIBTINYFS_H
 
+#include <fcntl.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include "TinyFS_errno.h"

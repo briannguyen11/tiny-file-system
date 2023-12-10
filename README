@@ -7,6 +7,7 @@
    context blocks only once we know the size of the file.
 
 3. Additional functionality:
+
    - Fragmentation info and defragmentation:
      Fragmentation info is shown using a grid that displays the block type of all the
      blocks in a disk. The tfs_displayFragments() function is called after new files are
@@ -15,15 +16,18 @@
      to show that a file has been deleted and then all the remaining files have been shifted
      such that there are no free space blocks between inode and file content blocks.
    - Directory listing and file renaming:
-     Calling tfs_rename(fileDescriptor FD, char\* newName) changes the name of a file and
-     tfs_readdir() displays all files in the disk. tfs_readdir() is called before and after
-     renaming to show that the file's name has changed.
+     Calling tfs_rename() changes the name of a file and tfs_readdir() displays all files in the
+     disk. tfs_readdir() is called before and after renaming to show that the file's name has changed.
    - Read-only and writeByte support:
-     tfs_makeRO(char *name) is used by setting a file to read-only initially and then trying to
-     delete the file, but it will be not be deleted. tfs_makeRW(char *name) is called which then
-     allows the file to be deleted. tfs_writeByte(fileDescriptor FD, unsigned int data) is called
-     on a file to
+     tfs_makeRO() is used by setting a file to read-only initially and then trying to delete the
+     file, but it will be not be deleted. tfs_makeRW() is called which then allows the file to be
+     deleted. tfs_writeByte() is called on a file to overwrite half of its bytes to be "x". seek()
+     moves the cursor back and then the bytes are then read with readBytes() to show that they have
+     in fact been read.
+   - Timestamps:
+     tfs_readFileInfo() is called after writeFile to show the base create, modification, and
+     access times. Its called after readByte() to show that the access time has changed and its
+     called after writeByte() to show that the modification and access times have changed.
 
-○ An explanation of which additional functionality areas you have chosen and how
-you have shown that it works.
-○ Any limitations or bugs your file system has.
+4. Limitations:
+   If you close a file, it will not be displayed in the readdir.
