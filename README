@@ -1,0 +1,20 @@
+1. Charles Snead and Brian Nguyen
+
+2. Our TinyFS implementation works very well. We implemented the Block Device Driver,
+   core functionality, and additional functions that all work as expected. One tradeoff
+   we made was that according to our design, we only know an inode exists for a file
+   after it has been written. This is because we wanted to initialized the inode and file
+   context blocks only once we know the size of the file.
+
+3. Additional functionality:
+   - Fragmentation info and defragmentation:
+     Fragmentation info is shown using a grid that displays the block type of all the
+     blocks in a disk. The tfs_displayFragments() function is called after new files are
+     created to show that they have been added to the disk. Defragmentation is demonstrated
+     when a file is deleted, tfs_defrag() is called, and then tfs_displayFragments() is called
+     to show that a file has been deleted and then all the remaining files have been shifted
+     such that there are no free space blocks between inode and file content blocks.
+
+○ An explanation of which additional functionality areas you have chosen and how
+you have shown that it works.
+○ Any limitations or bugs your file system has.

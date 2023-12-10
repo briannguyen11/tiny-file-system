@@ -16,43 +16,18 @@ int fillBufferWithPhrase(char *inPhrase, char *Buffer, int size) {
 }
 
 int main() {
-    int res = 0;
-    int diskFd1;
-    int diskFd2;
-
-    // expected to fail
-    res = tfs_mount(DEFAULT_DISK_NAME);
-
-    /************** Testing Disk Mount #1 and Setup FS **************/
-
-    if (res < 0) {
-        // create two FS
-        diskFd1 = tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);  // 40 blocks
-        diskFd2 = tfs_mkfs("tinyFSDiskRand", 2560);                // 10 blocks
-
-        // mount to first disk
-        res = tfs_mount(DEFAULT_DISK_NAME);
-    }
-
-    /** Testing file operations **/
-    // creating files
-    int fd1 = tfs_openFile("file1");
-    int fd2 = tfs_openFile("file2");
-    int fd3 = tfs_openFile("file3");
-
-    // closing files
-    // res = tfs_closeFile(fd1);
-    // res = tfs_closeFile(fd2);
-    // res = tfs_closeFile(999);
-
-    // writiing to a file
-    char *fileCont1, *fileCont2, *fileCont3;
+    char rdBuf;
+    char *fileCont1, *fileCont2, *fileCont3, *fileCont4;
     int fileSize1 = 300;   // 2 + inode
     int fileSize2 = 1200;  // 5 + inode
     int fileSize3 = 700;   // 3 + inode
+    int fileSize4 = 900;   // 4 + inode
     char filePhrase1[] = "fileOne";
     char filePhrase2[] = "fileTwo";
     char filePhrase3[] = "fileThree";
+    char filePhrase4[] = "fileFour";
+
+    fileDescriptor fd1, fd2, fd3, fd4;
 
     fileCont1 = (char *)malloc(fileSize1 * sizeof(char));
     if (fillBufferWithPhrase(filePhrase1, fileCont1, fileSize1) < 0) {
@@ -72,123 +47,175 @@ int main() {
         return -1;
     }
 
-    res = tfs_writeFile(fd1, fileCont1, fileSize1);
-    res = tfs_readFileInfo(fd1);
-    res = tfs_makeRO("file1");
-    // res = tfs_displayFragments();
-    res = tfs_writeFile(fd2, fileCont2, fileSize2);
-    // res = tfs_displayFragments();
-    res = tfs_writeFile(fd1, fileCont3, fileSize3);
-    // res = tfs_displayFragments();
-    res = tfs_makeRW("file1");
-    // res = tfs_deleteFile(fd1);
-    // res = tfs_displayFragments();
+    fileCont4 = (char *)malloc(fileSize4 * sizeof(char));
+    if (fillBufferWithPhrase(filePhrase4, fileCont4, fileSize4) < 0) {
+        perror("failed");
+        return -1;
+    }
 
-    /** Testing read, write, and seek operations **/
-    res = tfs_rename(fd2, "newName");
-    res = tfs_readdir();
+    /************** Testing Disk Mount #1 **************/
+    /* try to mount the disk */
+    if (tfs_mount(DEFAULT_DISK_NAME) < 0) /* if mount fails */
+    {
+        tfs_mkfs(DEFAULT_DISK_NAME,
+                 DEFAULT_DISK_SIZE);      /* then make a new disk */
+        tfs_mkfs("tinyFSDiskRand", 2560); /* and another new disk */
 
-    // reading initial bytes
-    char rByte1;
-    printf("Read Bytes: \n");
-    int i = 0;
-    while (tfs_readByte(fd1, &rByte1) >= 0) {
-        printf("%c", rByte1);
-        if ((i + 1) % 16 == 0) {
-            printf("\n");
+        tfs_mount(DEFAULT_DISK_NAME); /* mount to first disk */
+    }
+
+    /* Init file 1 */
+    fd1 = tfs_openFile("file1");
+    if (tfs_readByte(fd1, &rdBuf) < 0) {
+        /* If readByte() fails, there was no afile, so we write to it */
+        tfs_writeFile(fd1, fileCont1, fileSize1);
+
+        /* Get time stamps */
+        tfs_readFileInfo(fd1);
+
+        /* Display fragments */
+        tfs_displayFragments();
+
+    } else {
+        /* Display overwritten bytes */
+        while (tfs_readByte(fd1, &rdBuf) >= 0) {
+            printf("%c", rdBuf);
         }
-        i++;
-    }
 
-    sleep(3);
-
-    // writing new bytes
-    res = tfs_seek(fd1, 149);
-    while (tfs_writeByte(fd1, 'x') >= 0) {
-    }
-
-    sleep(3);
-
-    // reading after write
-    res = tfs_seek(fd1, 0);
-    printf("Read Bytes After: \n");
-    char rByte2;
-    int j = 0;
-    while (tfs_readByte(fd1, &rByte2) >= 0) {
-        printf("%c", rByte2);
-        if ((j + 1) % 16 == 0) {
-            printf("\n");
+        /* Seek to halfway of the file1 ((300/2) - 1) and write */
+        tfs_seek(fd1, 149);
+        while (tfs_writeByte(fd1, 'x') >= 0) {
+            printf("%c", rdBuf);
         }
-        j++;
+
+        /* Add delay before reading */
+        sleep(2);
+
+        /* Seek to beginning */
+        tfs_seek(fd1, 0);
+
+        /* Display overwritten bytes */
+        while (tfs_readByte(fd1, &rdBuf) >= 0) {
+            printf("%c", rdBuf);
+        }
+
+        /* Get time stamps */
+        tfs_readFileInfo(fd1);
     }
-    res = tfs_readFileInfo(fd1);
 
-    /** Testing defrag **/
-    // res = tfs_defrag();
-    // res = tfs_displayFragments();
+    /* Init file 2 */
+    fd2 = tfs_openFile("file2");
+    if (tfs_readByte(fd2, &rdBuf) < 0) {
+        /* if readByte() fails, there was no afile, so we write to it */
+        tfs_writeFile(fd2, fileCont2, fileSize2);
 
-    /************** Testing Disk #2 Mount  **************/
+        /* Make file2 RO */
+        tfs_makeRO("file2");
 
-    // res = tfs_mount("tinyFSDiskRand");
+        /* Get time stamps */
+        tfs_readFileInfo(fd2);
 
-    // /** Testing file operations **/
-    // // creating files
-    // int fd4 = tfs_openFile("file4");
-    // int fd5 = tfs_openFile("file5");
-    // int fd6 = tfs_openFile("file6");
+        /* Display fragments */
+        tfs_displayFragments();
 
-    // // // closing files
-    // // // res = tfs_closeFile(fd1);
-    // // // res = tfs_closeFile(fd2);
-    // // // res = tfs_closeFile(999);
+    } else {
+        /* Get time stamps */
+        tfs_readFileInfo(fd2);
 
-    // // // writiing to a file
-    // char *fileCont4, *fileCont5, *fileCont6;
-    // int fileSize4 = 300;   // 2 + inode
-    // int fileSize5 = 1000;  // 4 + inode
-    // int fileSize6 = 700;   // 3 + inode
-    // char filePhrase4[] = "fileFour";
-    // char filePhrase5[] = "fileFive";
-    // char filePhrase6[] = "fileSix";
+        /* Attempt to delete but should FAIL */
+        if (tfs_deleteFile(fd2) < 0) {
+            /* Reopen file 2 and delete */
+            fd2 = tfs_openFile("file2");
 
-    // fileCont4 = (char *)malloc(fileSize4 * sizeof(char));
-    // if (fillBufferWithPhrase(filePhrase4, fileCont4, fileSize4) < 0) {
-    //     perror("failed");
-    //     return -1;
-    // }
+            /* Make file2 RW */
+            tfs_makeRW("file2");
 
-    // fileCont5 = (char *)malloc(fileSize5 * sizeof(char));
-    // if (fillBufferWithPhrase(filePhrase5, fileCont5, fileSize5) < 0) {
-    //     perror("failed");
-    //     return -1;
-    // }
+            /* Should now be able to delete file2 */
+            tfs_deleteFile(fd2);
 
-    // fileCont6 = (char *)malloc(fileSize6 * sizeof(char));
-    // if (fillBufferWithPhrase(filePhrase6, fileCont6, fileSize6) < 0) {
-    //     perror("failed");
-    //     return -1;
-    // }
+            /* Display fragments */
+            tfs_displayFragments();
 
-    // res = tfs_writeFile(fd4, fileCont4, fileSize4);
-    // res = tfs_displayFragments();
-    // res = tfs_writeFile(fd5, fileCont5, fileSize5);
-    // res = tfs_displayFragments();
-    // res = tfs_writeFile(fd4, fileCont6, fileSize6);
-    // res = tfs_displayFragments();
+            /* Remove fragments */
+            tfs_defrag();
+
+            /* Display no fragemnts */
+            tfs_displayFragments();
+        }
+    }
+
+    // /* Init file 3 */
+    fd3 = tfs_openFile("file3");
+    if (tfs_readByte(fd3, &rdBuf) < 0) {
+        /* If readByte() fails, there was no afile, so we write to it */
+        tfs_writeFile(fd3, fileCont3, fileSize3);
+
+        /* Get time stamps */
+        tfs_readFileInfo(fd3);
+
+        /* Display fragments */
+        tfs_displayFragments();
+
+    } else {
+        /* Get time stamps */
+        tfs_readFileInfo(fd3);
+
+        /* Show files */
+        tfs_readdir();
+
+        /* Reanme file1 */
+        tfs_rename(fd3, "newfile3");
+
+        /* Show files after rename */
+        tfs_readdir();
+
+        /* Close file */
+        tfs_closeFile(fd1);
+        tfs_closeFile(fd3);
+    }
+
+    /************** Testing Disk Mount #2 **************/
+
+    tfs_mount("tinyFSDiskRand");
+
+    /* Init file 4 */
+    fd4 = tfs_openFile("file4");
+    if (tfs_readByte(fd1, &rdBuf) < 0) {
+        /* If readByte() fails, there was no afile, so we write to it */
+        tfs_writeFile(fd4, fileCont4, fileSize4);
+
+        /* Get time stamps */
+        tfs_readFileInfo(fd4);
+
+        /* Display fragments */
+        tfs_displayFragments();
+
+    } else {
+        /* Display overwritten bytes */
+        while (tfs_readByte(fd4, &rdBuf) >= 0) {
+            printf("%c", rdBuf);
+        }
+
+        /* Seek to 1/3 of the file4 ((900/3) - 1) and write */
+        tfs_seek(fd4, 299);
+        while (tfs_writeByte(fd1, 'x') >= 0) {
+            printf("%c", rdBuf);
+        }
+
+        /* Seek to beginning */
+        tfs_seek(fd4, 0);
+
+        /* Display overwritten bytes */
+        while (tfs_readByte(fd4, &rdBuf) >= 0) {
+            printf("%c", rdBuf);
+        }
+    }
 
     /************** Clean Up **************/
     free(fileCont1);
     free(fileCont2);
     free(fileCont3);
-
-    // free(fileCont4);
-    // free(fileCont5);
-    // free(fileCont6);
-
-    // test getStartBlock
-    // char testStartBlock[] = "SICCICCCCCCFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
-    // res = getStartBlock(diskFd1, 4, testStartBlock);
-    // printf("%d", getStartBlock);
+    free(fileCont4);
 
     return 0;
 }
